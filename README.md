@@ -145,5 +145,5 @@ results = autoscheduler.schedule_and_execute(circuit, max_qubits, shots, 'ibm_br
 ```
 
 ## License
-AutoSchedulQ is licensed under the [MIT License](LICENSE)
+AutoSchedulQ is licensed under the [MIT License](https://github.com/Qcraft-UEx/QCRAFT/blob/main/LICENSE)
 
