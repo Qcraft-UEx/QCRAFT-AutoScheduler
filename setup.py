@@ -5,13 +5,18 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='autoscheduler',
-    version='0.1',
+    version='0.1.2',
     packages=find_packages(),
     test_suite='tests',
     description='A library for quantum circuit composition',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author='Jorge Casco Seco',
     author_email='jorgecs@unex.es',
     url='https://github.com/Qcraft-UEx/QCRAFT-AutoSchedulQ',
+    project_urls={
+        'Changelog': 'https://github.com/Qcraft-UEx/QCRAFT-AutoSchedulQ/blob/main/CHANGELOG.md',
+    },
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',

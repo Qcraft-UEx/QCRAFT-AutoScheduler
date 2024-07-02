@@ -12,6 +12,7 @@ from urllib.parse import unquote
 import qiskit
 import braket
 from typing import Union, Tuple, Optional
+import numpy as np
 
 class Autoscheduler:
     """
@@ -427,27 +428,30 @@ class Autoscheduler:
         """
         qc = None
         if importIBM:
-            num_qubits_line = next((line for line in lines if '= QuantumRegister(' in line), None)
+            num_qubits_line = next((line.split('#')[0].strip() for line in lines if '= QuantumRegister(' in line.split('#')[0]), None)
             num_qubits = int(num_qubits_line.split('QuantumRegister(')[1].split(',')[0].strip(')')) if num_qubits_line else None
 
             # Get the data before the = in the line that appears QuantumCircuit(...)
-            file_circuit_name_line = next((line for line in lines if '= QuantumCircuit(' in line), None)
+            file_circuit_name_line = next((line.split('#')[0].strip() for line in lines if '= QuantumCircuit(' in line.split('#')[0]), None)
             file_circuit_name = file_circuit_name_line.split('=')[0].strip() if file_circuit_name_line else None
+
             # Get the name of the quantum register
-            qreg_line = next((line for line in lines if '= QuantumRegister(' in line), None)
+            qreg_line = next((line.split('#')[0].strip() for line in lines if '= QuantumRegister(' in line.split('#')[0]), None)
             qreg = qreg_line.split('=')[0].strip() if qreg_line else None
             # Get the name of the classical register
-            creg_line = next((line for line in lines if '= ClassicalRegister(' in line), None)
+            creg_line = next((line.split('#')[0].strip() for line in lines if '= ClassicalRegister(' in line.split('#')[0]), None)
             creg = creg_line.split('=')[0].strip() if creg_line else None
-            # Remove all lines that don't start with file_circuit_name and don't include the line that has file_circuit_name.add_register and line not starts with // or # (comments)
-            circuit = '\n'.join([line for line in lines if line.strip().startswith(file_circuit_name+'.') and 'add_register' not in line and not line.strip().startswith('//') and not line.strip().startswith('#')])
 
-            circuit = '\n'.join([line.lstrip() for line in circuit.split('\n')])
+            # Remove all lines that don't start with file_circuit_name and don't include the line that has file_circuit_name.add_register and line not starts with // or # (comments)
+            circuit_lines = [line.split('#')[0].strip() for line in lines if line.split('#')[0].strip().startswith(file_circuit_name+'.') and 'add_register' not in line]
+            circuit = '\n'.join(circuit_lines)
+
 
             # Replace all appearances of file_circuit_name, qreg, and creg
             circuit = circuit.replace(file_circuit_name+'.', 'circuit.')
             circuit = circuit.replace(f'{qreg}[', 'qreg_q[')
             circuit = circuit.replace(f'{creg}[', 'creg_c[')
+           
             # Create an array with the same length as the number of qubits initialized to 0 to count the number of gates on each qubit
             qubits = [0] * num_qubits
             for line in circuit.split('\n'): # For each line in the circuit
@@ -460,11 +464,12 @@ class Autoscheduler:
             qc = circuit
 
         elif importAWS:
-            file_circuit_name_line = next((line for line in lines if '= Circuit(' in line), None)
+            file_circuit_name_line = next((line.split('#')[0].strip() for line in lines if '= Circuit(' in line.split('#')[0]), None)
             file_circuit_name = file_circuit_name_line.split('=')[0].strip() if file_circuit_name_line else None
 
             # Remove all lines that don't start with file_circuit_name and don't include the line that has file_circuit_name.add_register and line not starts with // or # (comments)
-            circuit = '\n'.join([line for line in lines if line.strip().startswith(file_circuit_name+'.') and not line.strip().startswith('//') and not line.strip().startswith('#')])
+            circuit_lines = [line.split('#')[0].strip() for line in lines if line.split('#')[0].strip().startswith(file_circuit_name+'.') and 'add_register' not in line]
+            circuit = '\n'.join(circuit_lines)
 
             circuit = circuit.replace(file_circuit_name+'.', 'circuit.')
             # Remove tabs and spaces at the beginning of the lines
@@ -474,7 +479,7 @@ class Autoscheduler:
             qubits = {}
             for line in circuit.split('\n'): # For each line in the circuit
                 if 'barrier' not in line and 'circuit.' in line: #If the line is not a measure or a barrier
-                    #Get the game_name, which is the thing after circuit. and before (
+                    #Get the gate_name, which is the thing after circuit. and before (
                     gate_name = re.search(r'circuit\.(.*?)\(', line).group(1)
                     if gate_name in ['rx', 'ry', 'rz', 'gpi', 'gpi2', 'phaseshift']: # Because different gates have different number of parameters and in braket circuits there is no visual difference between a qubit and a parameter
                         # These gates have a parameter
@@ -530,7 +535,7 @@ class Autoscheduler:
             edited_circuit = circuit
             # In the circuit, change all [...] to [...+(i*qubits)]
             if provider == "ibm":
-                edited_circuit = re.sub(r'\[(\d+)\]', r'[\g<1>+' + f'{(i+1)*qubits}]', edited_circuit)
+                edited_circuit = re.sub(r'\[\s*(\d+)\s*\]', r'[ \g<1>+' + f'{(i+1)*qubits} ]', edited_circuit)
             elif provider == "aws":
                 # Get the gate name (circuit. ...)
                 new_edited_circuit = ""
@@ -659,14 +664,14 @@ class Autoscheduler:
                     # Parse gate operations
                     operation = line.split('circuit.')[1]
                     gate_name = operation.split('(')[0]
-                    args = operation.split('(')[1].strip(')').split(', ')
+                    args = re.split(r'\s*,\s*', operation.split('(')[1].strip(')').strip())
                     if gate_name == "measure":
                         qubit = qreg[int(args[0].split('[')[1].strip(']').split('+')[0]) + int(args[0].split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in args[0] else int(args[0].split('[')[1].strip(']'))]
                         cbit = creg[int(args[1].split('[')[1].strip(']').split('+')[0]) + int(args[1].split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in args[1] else int(args[1].split('[')[1].strip(']'))]
                         circuit.measure(qubit, cbit)
                     else:
                         qubits = [qreg[int(arg.split('[')[1].strip(']').split('+')[0]) + int(arg.split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in arg else int(arg.split('[')[1].strip(']'))] for arg in args if '[' in arg]
-                        params = [float(arg) for param_str in args if '[' not in param_str for arg in param_str.split(',')]
+                        params = [eval(arg, {"__builtins__": None, "np": np}, {}) for param_str in args if '[' not in param_str for arg in param_str.split(',')]
                         if params:
                             getattr(circuit, gate_name)(*params, *qubits)
                         else:
@@ -688,6 +693,8 @@ class Autoscheduler:
         lines = code_str.strip().split('\n')
         # Initialize the circuit
         circuit = braket.circuits.Circuit()
+        safe_namespace = {'np': np, 'pi': np.pi}
+
         # Process each line
         for line in lines:
             if line.startswith("circuit."):
@@ -699,24 +706,24 @@ class Autoscheduler:
                     # These gates have a parameter
                     args = operation.split('(')[1].strip(')').split(',')
                     target_qubit = int(args[0].split('+')[0]) + int(args[0].split('+')[1].strip(') ')) if '+' in args[0] else int(args[0].strip(') ').strip())
-                    angle = float(args[1])
+                    angle = eval(args[1], {"__builtins__": None}, safe_namespace)
                     getattr(circuit, gate_name)(target_qubit, angle)
                 elif gate_name in ['xx', 'yy', 'zz'] or 'cphase' in gate_name:
                     # These gates have 2 parameters
                     args = operation.split('(')[1].strip(')').split(',')
                     target_qubits = [int(arg.split('+')[0]) + int(arg.split('+')[1].strip(') ')) if '+' in arg else int(arg.strip(') ').strip()) for arg in args[:-1]]
-                    angle = float(args[-1])
+                    angle = eval(args[-1], {"__builtins__": None}, safe_namespace)
                     getattr(circuit, gate_name)(*target_qubits, angle)
                 elif gate_name == 'ms':
                     # These gates have multiple parameters (3)
                     args = operation.split('(')[1].strip(')').split(',')
                     target_qubits = [int(arg.split('+')[0]) + int(arg.split('+')[1].strip(') ')) if '+' in arg else int(arg.strip(') ').strip()) for arg in args[:-3]]
-                    angles = [float(arg) for arg in args[-3:]]
+                    angles = [eval(arg, {"__builtins__": None}, safe_namespace) for arg in args[-3:]]
                     getattr(circuit, gate_name)(*target_qubits, *angles)
                 else:
                     args = operation.split('(')[1].strip(')').split(',')
                     target_qubits = [int(arg.split('+')[0]) + int(arg.split('+')[1].strip(') ')) if '+' in arg else int(arg.strip(') ').strip()) for arg in args if not any(c.isalpha() for c in arg)]
-                    params = [float(arg) for arg in args if any(c.isalpha() for c in arg)]
+                    params = [eval(arg, {"__builtins__": None}, safe_namespace) for arg in args if any(c.isalpha() for c in arg)]
                     getattr(circuit, gate_name)(*target_qubits)
                 
         return circuit
