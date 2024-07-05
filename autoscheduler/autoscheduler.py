@@ -661,21 +661,34 @@ class Autoscheduler:
                 elif "QuantumCircuit" in line:
                     circuit = qiskit.QuantumCircuit(qreg, creg)
                 elif "circuit." in line:
+                    if ".c_if(" in line:
+                        operation, condition = line.split('.c_if(')
+                    else:
+                        operation = line
+                        condition = None
                     # Parse gate operations
-                    operation = line.split('circuit.')[1]
-                    gate_name = operation.split('(')[0]
+                    gate_name = operation.split('circuit.')[1].split('(')[0]
                     args = re.split(r'\s*,\s*', operation.split('(')[1].strip(')').strip())
                     if gate_name == "measure":
                         qubit = qreg[int(args[0].split('[')[1].strip(']').split('+')[0]) + int(args[0].split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in args[0] else int(args[0].split('[')[1].strip(']'))]
                         cbit = creg[int(args[1].split('[')[1].strip(']').split('+')[0]) + int(args[1].split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in args[1] else int(args[1].split('[')[1].strip(']'))]
                         circuit.measure(qubit, cbit)
+                    elif gate_name == "barrier":
+                        if args[0] == '': #For barrier()
+                            circuit.barrier()
+                        elif args[0] == qreg.name: #For barrier(qreg)
+                            circuit.barrier(*qreg)
+                        else: #For barrier(qreg[0], qreg[1], ...)
+                            qubits = [qreg[int(arg.split('[')[1].strip(']').split('+')[0]) + int(arg.split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in arg else int(arg.split('[')[1].strip(']'))] for arg in args if '[' in arg]
+                            circuit.barrier(qubits)
                     else:
                         qubits = [qreg[int(arg.split('[')[1].strip(']').split('+')[0]) + int(arg.split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in arg else int(arg.split('[')[1].strip(']'))] for arg in args if '[' in arg]
                         params = [eval(arg, {"__builtins__": None, "np": np}, {}) for param_str in args if '[' not in param_str for arg in param_str.split(',')]
-                        if params:
-                            getattr(circuit, gate_name)(*params, *qubits)
-                        else:
-                            getattr(circuit, gate_name)(*qubits)
+                        gate_operation = getattr(circuit, gate_name)(*params, *qubits) if params else getattr(circuit, gate_name)(*qubits)
+                        if condition:
+                            creg_name, val = condition.split(')')[0].split(',')
+                            val = int(val.strip())
+                            gate_operation.c_if(creg, val)
 
         return circuit
     

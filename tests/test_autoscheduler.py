@@ -127,6 +127,7 @@ class TestAutoScheduler(unittest.TestCase):
             circuit.cx(qreg_q[0],qreg_q[3]) 
             circuit.cx(qreg_q[  1  ], qreg_q[4])      # np.pi    
             circuit.cx(qreg_q[2  ], qreg_q[  5])
+            circuit.barrier() #circuit.barrier(qreg_q)
             circuit.cx(qreg_q[1], qreg_q[ 4])  #changing creg_c[3]   
             circuit.cx(qreg_q[1], qreg_q[5 ])  
             circuit.barrier(qreg_q[0],qreg_q[1],qreg_q[2], qreg_q[3],qreg_q[4], qreg_q[5]) # editing qreg_q 
@@ -134,6 +135,9 @@ class TestAutoScheduler(unittest.TestCase):
             circuit.h(qreg_q[1]) # changing the qreg_q[1] creg_c[2] 
             circuit.h(qreg_q[2]) # 
             circuit.rx(np.pi / 4 , qreg_q[ 0 ]) #creg_c
+            circuit.barrier(qreg_q) #circuit.barrier(qreg_q)
+            #circuit.rx(np.pi / 4 , qreg_q[ 0 ]) #creg_c
+            circuit.x(qreg_q[1]).c_if(creg_c, 1) # qreg_q[1]
             circuit.measure(qreg_q[0],creg_c[0])   #qreg_c[1
             circuit.measure(qreg_q[1], creg_c[1])  #121]
             circuit.measure(qreg_q[2], creg_c[2])  # sa1
@@ -381,6 +385,7 @@ class TestAutoScheduler(unittest.TestCase):
             circuit.cx(qreg_q[0+6*i], qreg_q[3+6*i])
             circuit.cx(qreg_q[1+6*i], qreg_q[4+6*i])
             circuit.cx(qreg_q[2+6*i], qreg_q[5+6*i])
+            circuit.barrier()
             circuit.cx(qreg_q[1+6*i], qreg_q[4+6*i])
             circuit.cx(qreg_q[1+6*i], qreg_q[5+6*i])
             circuit.barrier(qreg_q[0+6*i], qreg_q[1+6*i], qreg_q[2+6*i], qreg_q[3+6*i], qreg_q[4+6*i], qreg_q[5+6*i])
@@ -388,13 +393,15 @@ class TestAutoScheduler(unittest.TestCase):
             circuit.h(qreg_q[1+6*i])
             circuit.h(qreg_q[2+6*i])
             circuit.rx(np.pi / 4 , qreg_q[ 0+6*i])
+            circuit.barrier(qreg_q)
+            circuit.x(qreg_q[1+6*i]).c_if(creg_c, 1)
             circuit.measure(qreg_q[0+6*i], creg_c[0+6*i])
             circuit.measure(qreg_q[1+6*i], creg_c[1+6*i])
             circuit.measure(qreg_q[2+6*i], creg_c[2+6*i])
             circuit.measure(qreg_q[3+6*i], creg_c[3+6*i])
             circuit.measure(qreg_q[4+6*i], creg_c[4+6*i])
             circuit.measure(qreg_q[5+6*i], creg_c[5+6*i])
-        
+
         self.assertEqual(dumps(scheduled_circuit), dumps(circuit))
         self.assertEqual(shots, 1250)
         self.assertEqual(times, 4)

@@ -67,6 +67,7 @@ circuit.cnot(0,1)
 
 max_qubits = 8
 shots = 300
+autoscheduler = Autoscheduler()
 scheduled_circuit, shots, times = autoscheduler.schedule(circuit, max_qubits, shots)
 results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
 ```
@@ -86,6 +87,7 @@ circuit.measure(qreg_q[1], creg_c[1])
 
 max_qubits = 16
 shots = 500
+autoscheduler = Autoscheduler()
 scheduled_circuit, shots, times = autoscheduler.schedule(circuit, max_qubits, shots)
 results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
 ```
@@ -123,6 +125,7 @@ circuit.cnot(0,1)
 
 max_qubits = 8
 shots = 300
+autoscheduler = Autoscheduler()
 results = autoscheduler.schedule_and_execute(circuit, max_qubits, shots, 'ionq', s3_bucket='amazon-braket-s3')
 ```
 
@@ -140,6 +143,7 @@ circuit.measure(qreg_q[1], creg_c[1])
 
 max_qubits = 16
 shots = 500
+autoscheduler = Autoscheduler()
 results = autoscheduler.schedule_and_execute(circuit, max_qubits, shots, 'ibm_brisbane')
 
 ```
