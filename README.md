@@ -9,7 +9,7 @@
 
 # QCRAFT AutoSchedulQ
 [![PyPI Version](https://img.shields.io/pypi/v/autoscheduler.svg)](https://pypi.org/project/autoscheduler/)
-![Python Version](https://img.shields.io/badge/python-3.9-blue.svg)
+![Python Versions](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11%20|%203.12-blue.svg)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Qcraft-UEx/QCRAFT/blob/main/LICENSE)
 ## Description
 
