@@ -1,3 +1,7 @@
+## [0.1.4] - 2024-07-08
+### Fixed
+- Adding support for Python 3.10, 3.11 and 3.12
+
 ## [0.1.3] - 2024-07-05
 ### Fixed
 - _code_to_circuit_ibm can now handle c_if operation on every quantum gate
