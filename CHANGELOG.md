@@ -1,3 +1,8 @@
+## [0.1.5] - 2024-07-11
+### Fixed
+- _code_to_circuit_ibm can now handle Registers without name, like QuantumRegister(2) or ClassicalRegister(2)
+- Adding new tests for _divideResults and _translator
+
 ## [0.1.4] - 2024-07-08
 ### Fixed
 - Adding support for Python 3.10, 3.11 and 3.12

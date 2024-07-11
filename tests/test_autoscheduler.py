@@ -115,8 +115,8 @@ class TestAutoScheduler(unittest.TestCase):
             from qiskit_ibm_provider import least_busy, IBMProvider
             import numpy as np
 
-            qreg_q = QuantumRegister(6, 'q')
-            creg_c = ClassicalRegister(6, 'c')
+            qreg_q = QuantumRegister(6,'q')
+            creg_c = ClassicalRegister(6,'c')
             circuit = QuantumCircuit(qreg_q, creg_c)
             gate_machines_arn= {"local":"local", "ibm_brisbane":"ibm_brisbane", "ibm_osaka":"ibm_osaka", "ibm_kyoto":"ibm_kyoto", "simulator_stabilizer":"simulator_stabilizer", "simulator_mps":"simulator_mps", "simulator_extended_stabilizer":"simulator_extended_stabilizer", "simulator_statevector":"simulator_statevector"}
 
@@ -200,6 +200,7 @@ class TestAutoScheduler(unittest.TestCase):
                 circuit.cnot(3 ,0)  # circuit.cnot(1)
                 circuit.cphaseshift10(0, 1, np.pi )           
                 circuit.gpi2(0, np.pi/4)
+                circuit.rx(0, 0.15)
                 circuit.ms(0, 1, np.pi/2, np.pi, 0.15)      
                 return executeAWS(s3_folder, gate_machines_arn[machine], circuit, shots)
 
@@ -467,6 +468,7 @@ class TestAutoScheduler(unittest.TestCase):
             circuit.cnot(3+4*i,0+4*i)
             circuit.cphaseshift10(0+4*i, 1+4*i, np.pi)
             circuit.gpi2(0+4*i, np.pi/4)
+            circuit.rx(0+4*i, 0.15)
             circuit.ms(0+4*i, 1+4*i, np.pi/2, np.pi, 0.15)
 
         self.assertEqual(scheduled_circuit, circuit)
@@ -574,6 +576,58 @@ class TestAutoScheduler(unittest.TestCase):
         self.assertEqual(scheduled_circuit, new_circuit)
         self.assertEqual(shots, 1250)
         self.assertEqual(times, 4)
+
+    @patch('autoscheduler.Autoscheduler._fetch_circuit')
+    def test_schedule_ibm_no_registry_name(self, mock_fetch_circuit):
+
+        code_str = """
+        from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+        qreg = QuantumRegister(3)
+        creg = ClassicalRegister(3)
+        circuit = QuantumCircuit(qreg, creg)
+        circuit.h(qreg[0])
+        circuit.cx(qreg[0], qreg[1])
+        circuit.measure(qreg[0], creg[0])
+        circuit.measure(qreg[1], creg[1])
+        """ # No registry name (q or c) on github url
+
+        mock_response = Mock()
+        mock_response.text = code_str
+        mock_fetch_circuit.return_value = mock_response
+
+        url = "https://raw.githubusercontent.com/example/circuits/main/circuit.py"
+        shots = 5000
+        max_qubits = 6
+        scheduled_circuit, shots1, times = self.scheduler.schedule(url, max_qubits, shots, provider='ibm')
+
+
+        qreg2 = qiskit.QuantumRegister(3) # No q
+        creg2 = qiskit.ClassicalRegister(3) # No c
+        circuit2 = qiskit.QuantumCircuit(qreg2, creg2) # No registry name on circuit
+        circuit2.h(qreg2[0])
+        circuit2.cx(qreg2[0], qreg2[1])
+        circuit2.measure(qreg2[0], creg2[0])
+        circuit2.measure(qreg2[1], creg2[1])
+
+        scheduled_circuit2, shots2, times = self.scheduler.schedule(circuit2, max_qubits, shots, provider='ibm')
+
+
+        qreg = qiskit.QuantumRegister(6, 'qreg_q')
+        creg = qiskit.ClassicalRegister(6, 'creg_c')
+        circuit = qiskit.QuantumCircuit(qreg, creg)
+        for i in range(2):
+            circuit.h(qreg[0+3*i])
+            circuit.cx(qreg[0+3*i], qreg[1+3*i])
+            circuit.measure(qreg[0+3*i], creg[0+3*i])
+            circuit.measure(qreg[1+3*i], creg[1+3*i])
+
+
+        self.assertEqual(dumps(scheduled_circuit), dumps(circuit))
+        self.assertEqual(dumps(scheduled_circuit2), dumps(circuit))
+        self.assertEqual(shots1, 2500)
+        self.assertEqual(shots2, 2500)
+
 
     def test_schedule_empty_string(self):
         circuit = ""

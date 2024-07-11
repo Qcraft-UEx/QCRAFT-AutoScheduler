@@ -589,7 +589,7 @@ class Autoscheduler:
 
         Args:
         counts (dict): The results of the execution of the composed circuit.
-        shots (int): The number of shots that the composed circuit have been executed.
+        shots (int): The number of shots that the circuit has been executed.
         qubits (int): The number of qubits of the circuit.
         times (int): The number of times that the circuit was composed.
         provider (str): The provider of the circuit. It can be 'ibm', 'aws'.
@@ -652,11 +652,11 @@ class Autoscheduler:
             if 'import' not in line:
                 if "QuantumRegister" in line:
                     qreg_name = line.split('=')[0].strip()
-                    num_qubits = int(line.split('(')[1].split(',')[0])
+                    num_qubits = int(line.split('(')[1].split(')')[0].split(',')[0].strip())
                     qreg = qiskit.QuantumRegister(num_qubits, qreg_name)
                 elif "ClassicalRegister" in line:
                     creg_name = line.split('=')[0].strip()
-                    num_clbits = int(line.split('(')[1].split(',')[0])
+                    num_clbits = int(line.split('(')[1].split(')')[0].split(',')[0].strip())
                     creg = qiskit.ClassicalRegister(num_clbits, creg_name)
                 elif "QuantumCircuit" in line:
                     circuit = qiskit.QuantumCircuit(qreg, creg)

@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='autoscheduler',
-    version='0.1.4',
+    version='0.1.5',
     packages=find_packages(),
     test_suite='tests',
     description='A library for quantum circuit composition',

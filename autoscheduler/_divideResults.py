@@ -1,10 +1,10 @@
-def _divideResults(counts:dict, shots:int, provider:str, qb:list, users:list, circuit_name:list) -> list:
+def _divideResults(counts:dict, shots:list, provider:str, qb:list, users:list, circuit_name:list) -> list:
     """
     Divides the results of a circuit execution among the users that executed it.
 
     Args:
     counts (dict): The results of the circuit execution.
-    shots (int): The number of shots that the circuit was executed.
+    shots (list): The number of shots for each individual circuit in the composition.
     provider (str): The provider of the circuit execution.
     qb (list): The number of qubits of the circuit.
     users (list): The users that executed the circuit.
