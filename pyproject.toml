@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoscheduler"
+dynamic = ["version"]
+description = "A library for quantum circuit composition"
+readme = "README.md"
+authors = [{name = "Jorge Casco Seco", email = "jorgecs@unex.es"}]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+keywords = ["quantum", "quantum computing", "quantum circuit optimization", "circuit cost reduction", "qiskit", "braket"]
+
+dependencies = [
+    "requests>=2.32.0,<3.0.0",
+    "qiskit>=1.1.0,<2.0.0",
+    "amazon-braket-sdk>=1.80.0,<2.0.0",
+    "qiskit-ibm-runtime>=0.23.0,<1.0.0",
+    "qiskit-aer>=0.14.2,<1.0.0",
+    "antlr4-python3-runtime==4.9.2"
+]
+
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+dev = ["pytest", "sphinx"]
+
+[project.urls]
+Homepage = "https://github.com/Qcraft-UEx/QCRAFT-AutoSchedulQ"
+Changelog = "https://github.com/Qcraft-UEx/QCRAFT-AutoSchedulQ/blob/main/CHANGELOG.md"
+
+[tool.setuptools.dynamic]
+version = {attr = "autoscheduler._version.__version__"}

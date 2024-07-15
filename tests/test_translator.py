@@ -2,7 +2,7 @@ import unittest
 from autoscheduler import _get_aws_individual
 from autoscheduler import _get_ibm_individual
 
-class TestDivideResults(unittest.TestCase):
+class TestTranslator(unittest.TestCase):
 
     def setUp(self):
         self.common_values = { # testing different encodings with all available gates

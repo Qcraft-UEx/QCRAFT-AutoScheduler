@@ -775,5 +775,21 @@ class TestAutoScheduler(unittest.TestCase):
         with pytest.raises(TypeError, match="Invalid circuit format. Expected a circuit object, a Quirk URL, or a GitHub URL."):
             scheduled_circuit, shots, times = self.scheduler.schedule(circuit, self.common_values["max_qubits"], self.common_values["shots"])
 
+    def test_execute_aws_no_bucket(self):
+        circuit = braket.circuits.Circuit()
+        circuit.h(0)
+        with pytest.raises(ValueError, match="S3 Bucket not specified"):
+            self.scheduler.execute(circuit, self.common_values["shots"], 'notlocal', 1)
+
+    def test_decompose(self):
+        counts = {'00': 2500, '11': 2500} # 2 qubits(2 qubits/2 times, the real circuit has 1 qubit) -> 0:2500 + 0:2500=0:5000. Same for 1
+        newcounts = self.scheduler._decompose(counts,5000,2,2,'ibm')
+        
+        counts2 = {'001101': 500, '110010': 300, '010101':500} # 6 qubits (6 qubits/3 times, the real circuit has 2 qubits) -> 00:500 + 00:300 = 00:800, ... same for the rest values
+        newcounts2 = self.scheduler._decompose(counts2,1300,6,3,'ibm')
+        
+        self.assertEqual(newcounts, {'0': 5000, '1': 5000})
+        self.assertEqual(newcounts2, {'00': 800, '11': 800, '01':2000, '10':300})
+
 if __name__ == '__main__':
     unittest.main()
