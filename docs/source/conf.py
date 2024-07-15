@@ -16,7 +16,7 @@ extensions = [
 ]
 
 project = 'QCRAFT AutoSchedulQ'
-copyright = '2024, Jorge Casco Seco'
+copyright = '2024, SPILab'
 author = 'Jorge Casco Seco'
 release = autoscheduler.__version__
 
