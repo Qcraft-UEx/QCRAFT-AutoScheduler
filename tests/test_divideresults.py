@@ -11,7 +11,7 @@ class TestDivideResults(unittest.TestCase):
         qb = [1,2]
         users = [1,2]
         circuit_name = ['circuit1','circuit2']
-        results = _divideResults(counts, shots, provider, qb, users, circuit_name)
+        results = _divideResults._divideResults(counts, shots, provider, qb, users, circuit_name)
         self.assertEqual(results, [{(1, 'circuit1'):{'0':5000}}, {(2, 'circuit2'):{'01':2500, '11':2500}}])
 
     def test_divide_results_aws(self):
@@ -22,7 +22,7 @@ class TestDivideResults(unittest.TestCase):
         qb = [1,2]
         users = [1,2]
         circuit_name = ['circuit1','circuit2']
-        results = _divideResults(counts, shots, provider, qb, users, circuit_name)
+        results = _divideResults._divideResults(counts, shots, provider, qb, users, circuit_name)
         self.assertEqual(results, [{(1, 'circuit1'):{'0':2500, '1':2500}}, {(2, 'circuit2'):{'01':5000}}])
 
 if __name__ == '__main__':

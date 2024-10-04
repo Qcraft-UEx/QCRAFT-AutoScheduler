@@ -1,3 +1,5 @@
+.. _api-reference:
+
 API Reference
 =============
 
@@ -5,3 +7,4 @@ API Reference
    :members:
    :undoc-members:
    :show-inheritance:
+   

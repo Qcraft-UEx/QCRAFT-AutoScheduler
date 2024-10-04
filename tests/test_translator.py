@@ -1,6 +1,5 @@
 import unittest
-from autoscheduler import _get_aws_individual
-from autoscheduler import _get_ibm_individual
+from autoscheduler import _translator
 
 class TestTranslator(unittest.TestCase):
 
@@ -15,7 +14,7 @@ class TestTranslator(unittest.TestCase):
 
     def test_get_ibm_individual(self):
         quirk = self.common_values['quirk']
-        translated_circuit = _get_ibm_individual(quirk, 3)
+        translated_circuit = _translator._get_ibm_individual(quirk, 3)
 
         circuit = self.common_values['ibm_circuit']
 
@@ -23,7 +22,7 @@ class TestTranslator(unittest.TestCase):
 
     def test_get_aws_individual(self):
         quirk = self.common_values['quirk']
-        translated_circuit = _get_aws_individual(quirk, 3)
+        translated_circuit = _translator._get_aws_individual(quirk, 3)
 
         circuit = self.common_values['aws_circuit']
 
@@ -31,7 +30,7 @@ class TestTranslator(unittest.TestCase):
 
     def test_get_ibm_individual_exported_quirk_circuit(self):
         quirk = self.common_values['quirk_exported']
-        translated_circuit = _get_ibm_individual(quirk, 3)
+        translated_circuit = _translator._get_ibm_individual(quirk, 3)
 
         circuit = self.common_values['ibm_circuit']
 
@@ -39,7 +38,7 @@ class TestTranslator(unittest.TestCase):
 
     def test_get_aws_individual_exported_quirk_circuit(self):
         quirk = self.common_values['quirk_exported']
-        translated_circuit = _get_aws_individual(quirk, 3)
+        translated_circuit = _translator._get_aws_individual(quirk, 3)
 
         circuit = self.common_values['aws_circuit']
 
@@ -47,7 +46,7 @@ class TestTranslator(unittest.TestCase):
 
     def test_get_ibm_individual_copied_quirk_circuit_url(self):
         quirk = self.common_values['quirk_copied']
-        translated_circuit = _get_ibm_individual(quirk, 3)
+        translated_circuit = _translator._get_ibm_individual(quirk, 3)
 
         circuit = self.common_values['ibm_circuit']
 
@@ -55,7 +54,7 @@ class TestTranslator(unittest.TestCase):
 
     def test_get_aws_individual_copied_quirk_circuit_url(self):
         quirk = self.common_values['quirk_copied']
-        translated_circuit = _get_aws_individual(quirk, 3)
+        translated_circuit = _translator._get_aws_individual(quirk, 3)
 
         circuit = self.common_values['aws_circuit']
 

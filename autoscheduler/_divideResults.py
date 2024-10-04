@@ -1,17 +1,21 @@
+"""
+Module containing the unscheduling of the results so the users can see the results formatted as in the original circuit
+"""
+
 def _divideResults(counts:dict, shots:list, provider:str, qb:list, users:list, circuit_name:list) -> list:
     """
     Divides the results of a circuit execution among the users that executed it.
 
     Args:
-    counts (dict): The results of the circuit execution.
-    shots (list): The number of shots for each individual circuit in the composition.
-    provider (str): The provider of the circuit execution.
-    qb (list): The number of qubits of the circuit.
-    users (list): The users that executed the circuit.
-    circuit_name (list): The name of the circuit that was executed.
+        counts (dict): The results of the circuit execution.        
+        shots (list): The number of shots for each individual circuit in the composition.
+        provider (str): The provider of the circuit execution.
+        qb (list): The number of qubits of the circuit.
+        users (list): The users that executed the circuit.
+        circuit_name (list): The name of the circuit that was executed.
     
     Returns:
-    list: The results of the circuit execution divided among the users.
+        list: The results of the circuit execution divided among the users.
     """
     result = []
     for i in range(len(shots)):
@@ -34,8 +38,6 @@ def _divideResults(counts:dict, shots:list, provider:str, qb:list, users:list, c
             else:
                 newCounts[data] = value
 
-        # Calculate the total number of shots
-        total_shots = sum(newCounts.values())
         # Check if the total number of shots is equal to the number of executed shots
         selected_counts = newCounts
 

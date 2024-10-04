@@ -25,8 +25,8 @@ circuit.measure(qreg_q[1], creg_c[1])
 shots = 5000
 max_qubits = 4
 
-# Schedule the circuit
-circuit,shots,times = autoscheduler.schedule(circuit, max_qubits, shots)
+# Schedule the circuit inferring the qubits from the machine
+circuit,shots,times = autoscheduler.schedule(circuit, shots, machine='local')
 
 # Execute the scheduled circuit
 results = autoscheduler.execute(circuit,shots,'local',times)
@@ -62,9 +62,33 @@ circuit.ms(0, 1, 0.15, 0.15, 0.15)
 shots = 5000
 max_qubits = 8
 
-# Schedule the circuit
-scheduled_circuit, shots, times = autoscheduler.schedule(circuit, max_qubits, shots)
+# Schedule the circuit but this time using max_qubits instead of inferring from the machine
+scheduled_circuit, shots, times = autoscheduler.schedule(circuit, shots, max_qubits=max_qubits)
 
 # Execute the scheduled circuit
 results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
+print(results)
+
+
+# In the next example we will show how to use schedule_and_execute
+print("----------------IBM schedule and execute------------------")
+qreg_q = QuantumRegister(2, 'q')
+creg_c = ClassicalRegister(2, 'c')
+circuit = QuantumCircuit(qreg_q, creg_c)
+circuit.rx(0.5, qreg_q[0])
+circuit.measure(qreg_q[0], creg_c[0])
+circuit.measure(qreg_q[1], creg_c[1])
+
+shots = 5000
+results = autoscheduler.schedule_and_execute(circuit, shots, machine='local')
+print(results)
+
+# If we use max_qubits, it wont be inferred from the machine
+print("----------------AWS schedule and execute------------------")
+circuit = Circuit()
+circuit.x(0)
+circuit.x(1)
+
+shots = 5000
+results = autoscheduler.schedule_and_execute(circuit, shots, machine='local', max_qubits=8)
 print(results)

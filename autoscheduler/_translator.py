@@ -1,17 +1,20 @@
+"""
+Module containing qirk translator functions
+"""
+
 import ast
 from urllib.parse import unquote
-
 
 def _get_ibm_individual(ind_circuit:str,d:int) -> str:
     """
     Translates the results of the Quirk URL into a Qiskit circuit, adding a offset to the qubits.
 
     Args:
-    ind_circuit (str): The Quirk URL.
-    d (int): The offset to add to the qubits.
+        ind_circuit (str): The Quirk URL.
+        d (int): The offset to add to the qubits.
     
     Returns:
-    str: The Qiskit circuit.
+        str: The Qiskit circuit.
     """
     url = ind_circuit  # Get the 'url' parameter
     circuitos = []
@@ -65,11 +68,11 @@ def _get_aws_individual(ind_circuit:str, d:int) -> str:
     Translates the results of the Quirk URL into a Braket circuit, adding a offset to the qubits.
 
     Args:
-    ind_circuit (str): The Quirk URL.
-    d (int): The offset to add to the qubits.
+        ind_circuit (str): The Quirk URL.
+        d (int): The offset to add to the qubits.
     
     Returns:
-    str: The Braket circuit.
+        str: The Braket circuit.
     """
     url = ind_circuit
     circuitos = []

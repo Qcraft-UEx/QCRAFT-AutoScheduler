@@ -1,0 +1,6 @@
+include *.txt *.md *.ini
+recursive-include docs *.rst *.py
+recursive-include autoscheduler *.py
+recursive-include tests *.py
+recursive-include examples *.py
+prune docs/build/

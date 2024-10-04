@@ -7,3 +7,12 @@ dist/
 build/
 .tox/
 source/_build/
+# Virtual environment
+venv/
+.env
+# IDE/Editor configurations
+.vscode/
+.idea/
+# Operating System Files
+.DS_Store
+Thumbs.db

@@ -3,15 +3,12 @@
      <source media="(prefers-color-scheme: dark)" srcset="https://github.com/Qcraft-UEx/Qcraft/blob/main/docs/_images/qcraft_logo.png?raw=true" width="60%">
      <img src="https://github.com/Qcraft-UEx/Qcraft/blob/main/docs/_images/qcraft_logo.png?raw=true" width="60%" alt="Qcraft Logo">
    </picture>
-  </a>
 </p>
-
 
 # QCRAFT AutoSchedulQ
 [![PyPI Version](https://img.shields.io/pypi/v/autoscheduler.svg)](https://pypi.org/project/autoscheduler/)
 ![Python Versions](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11%20|%203.12-blue.svg)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Qcraft-UEx/QCRAFT/blob/main/LICENSE)
-## Description
 
 QCRAFT AutoSchedulQ: a library that allows users to automatically schedule the execution of their own quantum circuits, improving efficiency and reducing execution times in quantum computing environments. With this library, your Qiskit or Braket quantum circuit will be modified to increase its length but also decreasing the number of shots needed to execute it, getting a new circuit that needs more qubits but less shots to get the same result as the original circuit.
 
@@ -42,7 +39,7 @@ max_qubits = 4
 shots = 100
 provider = 'ibm'
 autoscheduler = Autoscheduler()
-scheduled_circuit, shots, times = autoscheduler.schedule(circuit, max_qubits, shots, provider)
+scheduled_circuit, shots, times = autoscheduler.schedule(circuit, shots, max_qubits=max_qubits, provider=provider)
 results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
 ```
 
@@ -54,7 +51,7 @@ circuit = "https://raw.githubusercontent.com/user/repo/branch/file.py"
 max_qubits = 15
 shots = 1000
 autoscheduler = Autoscheduler()
-scheduled_circuit, shots, times = autoscheduler.schedule(circuit, max_qubits, shots)
+scheduled_circuit, shots, times = autoscheduler.schedule(circuit, shots, max_qubits=max_qubits)
 results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
 ```
 
@@ -70,7 +67,7 @@ circuit.cnot(0,1)
 max_qubits = 8
 shots = 300
 autoscheduler = Autoscheduler()
-scheduled_circuit, shots, times = autoscheduler.schedule(circuit, max_qubits, shots)
+scheduled_circuit, shots, times = autoscheduler.schedule(circuit, shots, max_qubits=max_qubits)
 results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
 ```
 
@@ -90,7 +87,7 @@ circuit.measure(qreg_q[1], creg_c[1])
 max_qubits = 16
 shots = 500
 autoscheduler = Autoscheduler()
-scheduled_circuit, shots, times = autoscheduler.schedule(circuit, max_qubits, shots)
+scheduled_circuit, shots, times = autoscheduler.schedule(circuit, shots, max_qubits=max_qubits)
 results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
 ```
 
@@ -104,7 +101,7 @@ max_qubits = 4
 shots = 100
 provider = 'aws'
 autoscheduler = Autoscheduler()
-results = autoscheduler.schedule_and_execute(circuit, max_qubits, shots, 'ionq', provider, 'amazon-braket-s3')
+results = autoscheduler.schedule_and_execute(circuit, shots, 'ionq', max_qubits=max_qubits, provider=provider, s3_bucket=('amazon-braket-s3' 'my_braket_results'))
 ```
 
 ```python
@@ -114,7 +111,7 @@ circuit = "https://raw.githubusercontent.com/user/repo/branch/file.py"
 max_qubits = 15
 shots = 1000
 autoscheduler = Autoscheduler()
-results = autoscheduler.schedule_and_execute(circuit, max_qubits, shots, 'ibm_brisbane')
+results = autoscheduler.schedule_and_execute(circuit, shots, 'ibm_brisbane', max_qubits=max_qubits)
 ```
 
 ```python
@@ -128,7 +125,7 @@ circuit.cnot(0,1)
 max_qubits = 8
 shots = 300
 autoscheduler = Autoscheduler()
-results = autoscheduler.schedule_and_execute(circuit, max_qubits, shots, 'ionq', s3_bucket='amazon-braket-s3')
+results = autoscheduler.schedule_and_execute(circuit, shots, 'ionq', max_qubits=max_qubits, s3_bucket=('amazon-braket-s3' 'my_braket_results'))
 ```
 
 ```python
@@ -146,13 +143,60 @@ circuit.measure(qreg_q[1], creg_c[1])
 max_qubits = 16
 shots = 500
 autoscheduler = Autoscheduler()
-results = autoscheduler.schedule_and_execute(circuit, max_qubits, shots, 'ibm_brisbane')
+results = autoscheduler.schedule_and_execute(circuit, shots, 'ibm_brisbane', max_qubits=max_qubits)
 
 ```
+
+In schedule and schedule and execute you can use the machine to infer the value of max_qubits. It is mandatory to use at least one of those parameters to build the scheduled circuit.
+
+```python
+from autoscheduler import Autoscheduler
+from braket.circuits import Circuit
+
+circuit = Circuit()
+circuit.x(0)
+circuit.cnot(0,1)
+
+max_qubits = 8
+shots = 300
+autoscheduler = Autoscheduler()
+scheduled_circuit, shots, times = autoscheduler.schedule(circuit, shots, machine='local')
+results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
+
+```
+
+```python
+from autoscheduler import Autoscheduler
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+qreg_q = QuantumRegister(2, 'q')
+creg_c = ClassicalRegister(2, 'c')
+circuit = QuantumCircuit(qreg_q, creg_c)
+circuit.h(qreg_q[0])
+circuit.cx(qreg_q[0], qreg_q[1])
+circuit.measure(qreg_q[0], creg_c[0])
+circuit.measure(qreg_q[1], creg_c[1])
+
+max_qubits = 16
+shots = 500
+autoscheduler = Autoscheduler()
+results = autoscheduler.schedule_and_execute(circuit, shots, 'ibm_brisbane')
+
+```
+QCRAFT AutoschedulQ will utilize the default AWS and IBM Cloud credentials stored on the machine for cloud executions.
+
+## Optimizing Quantum Tasks
+This library aims for the shot optimization on quantum tasks. Reducing the cost of the circuit on the end-user.
+
+### Shot optimization
+To achieve the shot optimization, the original circuit will be composed multiple time with itself. The more segments, the less shots will be needed to replicate the original circuit.
+The total number of shots may differ from the original on a very small scale because the library combines the original circuit multiple times. Depending on the maximum number of qubits, to achieve the desired number of shots and cost reduction the algorithm will create segments equal to the original circuit each with a proportional number of shots, all this on a unique circuit.
+
+**Example:**
+Consider a circuit with 2 qubits, requiring 100 shots. If the maximum number of qubits of the new scheduled circuit is 6, the shots will be reduced to 100/(6/2) = 34 in total. Upon uncheduling, the results of each segment of the circuit will be aggregated, resulting on 34*(6/2) = 102 shots in total. Even so, the cost reduction has been achieved because the number of shots has been reduced from 100 to 34.
 
 ## Changelog
 The changelog is available [here](https://github.com/Qcraft-UEx/QCRAFT-AutoSchedulQ/blob/main/CHANGELOG.md)
 
 ## License
-AutoSchedulQ is licensed under the [MIT License](https://github.com/Qcraft-UEx/QCRAFT/blob/main/LICENSE)
-
+QCRAFT AutoSchedulQ is licensed under the [MIT License](https://github.com/Qcraft-UEx/QCRAFT/blob/main/LICENSE)

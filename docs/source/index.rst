@@ -3,19 +3,19 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-QCRAFT AutoSchedulQ documentation
-=================================
+QCRAFT AutoSchedulQ |release| documentation
+===========================================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
-
+QCRAFT-AutoSchedulQ is part of the Quantum Circuit Research And Framework Toolbox (QCRAFT) project, developed by SPILab at the University of Extremadura.
+With this library we aim to provide a tool that allows users to improve the efficiency of their quantum tasks.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   introduction
    installation
    usage
    api_reference
+   changelog
 
