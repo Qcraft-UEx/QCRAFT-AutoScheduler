@@ -1,15 +1,8 @@
 """
 Module containing IBM execution functions
 """
-
-#!/usr/bin/env python
-# coding: utf-8
-
-# import libraries
-
-from qiskit import transpile
-from qiskit_ibm_runtime import QiskitRuntimeService
-from qiskit import QuantumCircuit
+from qiskit import transpile, QuantumCircuit
+from qiskit_ibm_runtime import SamplerV2 as Sampler, QiskitRuntimeService
 from qiskit_aer import AerSimulator
 
 def _runIBM(machine:str, circuit:QuantumCircuit, shots:int) -> dict:
@@ -35,11 +28,12 @@ def _runIBM(machine:str, circuit:QuantumCircuit, shots:int) -> dict:
         # Load your IBM Quantum account
         service = QiskitRuntimeService()
         backend = service.backend(machine)
+        sampler = Sampler(mode=backend)
         qc_basis = transpile(circuit, backend)
         x = int(shots)
-        job = backend.run(qc_basis, shots=x) 
+        job = sampler.run([qc_basis], shots=x)
         result = job.result()
-        counts = result.get_counts()
+        counts = result[0].data.creg_c.get_counts()
         return counts
 
 def _get_qubits_machine_ibm(machine:str) -> int:
@@ -55,7 +49,7 @@ def _get_qubits_machine_ibm(machine:str) -> int:
     Raises:
         ValueError: If the machine is not available on the IBM account.
     """
-    if machine == 'local': 
+    if machine == 'local':
         backend = AerSimulator()
     else:
         service = QiskitRuntimeService()
@@ -63,6 +57,5 @@ def _get_qubits_machine_ibm(machine:str) -> int:
         available_backends_names = [backend.name for backend in available_backends]
         if machine not in available_backends_names:
             raise ValueError(f"Machine {machine} not available.")
-        else:
-            backend = service.backend(machine)
+        backend = service.backend(machine)
     return backend.configuration().n_qubits

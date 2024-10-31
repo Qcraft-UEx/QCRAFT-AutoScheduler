@@ -216,8 +216,8 @@ class TestAutoScheduler(unittest.TestCase):
 
     def test_code_to_circuit_ibm(self):
         code_str = """
-        qreg = QuantumRegister(3, 'reg_qreg')
-        creg = ClassicalRegister(3, 'reg_creg')
+        qreg = QuantumRegister(4, 'reg_qreg')
+        creg = ClassicalRegister(4, 'reg_creg')
         circuit = QuantumCircuit(qreg, creg)
         circuit.h(qreg[1+0])
         circuit.cx(qreg[1+0], qreg[0])
@@ -226,14 +226,20 @@ class TestAutoScheduler(unittest.TestCase):
         circuit.ccx(qreg[1+0], qreg[0], qreg[1+1])
         circuit.rz(0.1,    qreg[1+0])
         circuit.cu(0.12,0.15,0.2,0.3, qreg[1+1], qreg[0])
+        mc_x_gate = MCMT(XGate(), 1, 1)
+        circuit.append(mc_x_gate, [qreg[1+0], qreg[0]])
+        mc_y_gate = MCMT(YGate(), 2, 1)
+        circuit.append(mc_y_gate, [qreg[1+0], qreg[1 + 1] ,qreg[0]])
+        mc_z_gate = MCMT(ZGate(), 3, 1)
+        circuit.append(mc_z_gate, [qreg[0+0], qreg[  2] ,qreg[1 + 2] ,qreg[ 1 ]])
         circuit.measure(qreg[0], creg[0])
         circuit.measure(qreg[1+0], creg[1])
         circuit.measure(qreg[1  +    1], creg[2          ])
         """
         built_circuit = self.scheduler._code_to_circuit_ibm(code_str)
         self.assertIsInstance(built_circuit, qiskit.QuantumCircuit)
-        qreg = qiskit.QuantumRegister(3, 'reg_qreg')
-        creg = qiskit.ClassicalRegister(3, 'reg_creg')
+        qreg = qiskit.QuantumRegister(4, 'reg_qreg')
+        creg = qiskit.ClassicalRegister(4, 'reg_creg')
         circuit = qiskit.QuantumCircuit(qreg, creg)
         circuit.h(qreg[1+0])
         circuit.cx(qreg[1+0], qreg[0])
@@ -242,11 +248,25 @@ class TestAutoScheduler(unittest.TestCase):
         circuit.ccx(qreg[1+0], qreg[0], qreg[1+1])
         circuit.rz(0.1,    qreg[1+0])
         circuit.cu(0.12,0.15,0.2,0.3, qreg[1+1], qreg[0])
+        mcx = qiskit.circuit.library.MCXGate(1)
+        circuit.append(mcx, [qreg[1+0]] + [qreg[0]])
+        circuit.sdg(qreg[0])
+        mcx = qiskit.circuit.library.MCXGate(2)
+        circuit.append(mcx, [qreg[1+0], qreg[1 + 1]] + [qreg[0]])
+        circuit.s(qreg[0])
+        circuit.h(qreg[1])
+        mcx = qiskit.circuit.library.MCXGate(3)
+        circuit.append(mcx, [qreg[0+0], qreg[  2] ,qreg[1 + 2]] + [qreg[1]])
+        circuit.h(qreg[1])
         circuit.measure(qreg[0], creg[0])
         circuit.measure(qreg[1+0], creg[1])
         circuit.measure(qreg[1  +    1], creg[2          ])
         # Check if built_circuit is equal to circuit (at gate level)
-        self.assertEqual(dumps(built_circuit), dumps(circuit))
+        built_circuit.remove_final_measurements(inplace=True)
+        circuit.remove_final_measurements(inplace=True)
+        built_circuit_statevector = qiskit.quantum_info.Statevector.from_instruction(built_circuit)
+        circuit_statevector = qiskit.quantum_info.Statevector.from_instruction(circuit)
+        self.assertEqual(built_circuit_statevector, circuit_statevector) # As MCX add a label to the gate in qasm and its random, its a better approach to test this with statevectors
 
     def test_code_to_circuit_aws(self):
         code_str = """circuit.x(0)\ncircuit.x(0+  1)\ncircuit.x(     2)\ncircuit.x(3)\ncircuit.cnot(2,1)\ncircuit.cnot(1,2)\ncircuit.cnot(   1+1   ,1)\ncircuit.cnot(1,0)\ncircuit.cnot(0,     1    )\ncircuit.cnot(1,0)\ncircuit.cnot(3,0)\ncircuit.cnot(0,3)\ncircuit.ccnot(3,0,1)\ncircuit.rx(1,0)\ncircuit.cswap(0, 1, 2)\ncircuit.phaseshift(0,0.15)\ncircuit.cphaseshift01( 0, 1,     0.15)\ncircuit.s(2)\ncircuit.gpi2(0, 0.15)\ncircuit.yy(0, 1, 0.15)\ncircuit.ms(0, 1, 0.15, 0.15, 0.15)
@@ -508,11 +528,10 @@ class TestAutoScheduler(unittest.TestCase):
             new_circuit.ccx(qreg[1+i*3], qreg[0+i*3], qreg[2+i*3])
             new_circuit.rz(0.1,    qreg[1+i*3])
             new_circuit.cu(0.12,np.pi,0.2,0.3, qreg[2+i*3], qreg[0+i*3])
+        for i in range(3):  # the measurements are delayed in the autoscheduled circuit
             new_circuit.measure(qreg[0+i*3], creg[0+i*3])
             new_circuit.measure(qreg[1+i*3], creg[1+i*3])
             new_circuit.measure(qreg[2+i*3], creg[2+i*3])
-
-
 
         self.assertEqual(dumps(scheduled_circuit), dumps(new_circuit))
         self.assertEqual(shots, 1667)
@@ -578,7 +597,7 @@ class TestAutoScheduler(unittest.TestCase):
         self.assertEqual(times, 4)
 
     @patch('autoscheduler.Autoscheduler._fetch_circuit')
-    def test_schedule_ibm_no_registry_name(self, mock_fetch_circuit):
+    def test_schedule_ibm_no_registry_name_github_url(self, mock_fetch_circuit):
 
         code_str = """
         from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -600,18 +619,7 @@ class TestAutoScheduler(unittest.TestCase):
         shots = 5000
         max_qubits = 6
         scheduled_circuit, shots1, times = self.scheduler.schedule(url, shots, max_qubits=max_qubits, provider='ibm')
-
-
-        qreg2 = qiskit.QuantumRegister(3) # No q
-        creg2 = qiskit.ClassicalRegister(3) # No c
-        circuit2 = qiskit.QuantumCircuit(qreg2, creg2) # No registry name on circuit
-        circuit2.h(qreg2[0])
-        circuit2.cx(qreg2[0], qreg2[1])
-        circuit2.measure(qreg2[0], creg2[0])
-        circuit2.measure(qreg2[1], creg2[1])
-
-        scheduled_circuit2, shots2, times = self.scheduler.schedule(circuit2, shots, max_qubits=max_qubits, provider='ibm')
-
+        scheduled_circuit.delay_measure = True
 
         qreg = qiskit.QuantumRegister(6, 'qreg_q')
         creg = qiskit.ClassicalRegister(6, 'creg_c')
@@ -622,12 +630,33 @@ class TestAutoScheduler(unittest.TestCase):
             circuit.measure(qreg[0+3*i], creg[0+3*i])
             circuit.measure(qreg[1+3*i], creg[1+3*i])
 
+        self.assertEqual(dumps(scheduled_circuit), dumps(circuit))
+        self.assertEqual(shots1, 2500)
+
+    def test_schedule_ibm_no_registry_name_circuit(self):
+        shots = 5000
+        max_qubits = 6
+        qreg = qiskit.QuantumRegister(3) # No q
+        creg = qiskit.ClassicalRegister(3) # No c
+        circuit = qiskit.QuantumCircuit(qreg, creg) # No registry name on circuit
+        circuit.h(qreg[0])
+        circuit.cx(qreg[0], qreg[1])
+        circuit.measure(qreg[0], creg[0])
+        circuit.measure(qreg[1], creg[1])
+        scheduled_circuit, shots, times = self.scheduler.schedule(circuit, shots, max_qubits=max_qubits, provider='ibm')
+
+        qreg = qiskit.QuantumRegister(6, 'qreg_q')
+        creg = qiskit.ClassicalRegister(6, 'creg_c')
+        circuit = qiskit.QuantumCircuit(qreg, creg)
+        for i in range(2):
+            circuit.h(qreg[0+3*i])
+            circuit.cx(qreg[0+3*i], qreg[1+3*i])
+        for i in range(2): #delayed measurements
+            circuit.measure(qreg[0+3*i], creg[0+3*i])
+            circuit.measure(qreg[1+3*i], creg[1+3*i])
 
         self.assertEqual(dumps(scheduled_circuit), dumps(circuit))
-        self.assertEqual(dumps(scheduled_circuit2), dumps(circuit))
-        self.assertEqual(shots1, 2500)
-        self.assertEqual(shots2, 2500)
-
+        self.assertEqual(shots, 2500)
 
     def test_schedule_empty_string(self):
         circuit = ""
@@ -681,29 +710,29 @@ class TestAutoScheduler(unittest.TestCase):
         """
         mock_fetch_circuit.return_value = mock_response
         circuit = "https://raw.githubusercontent.com/user/repo/branch/file.yaml"
-        with pytest.raises(ValueError, match="The GitHub URL must be a Braket or Qiskit quantum circuit"):
+        with pytest.raises(ValueError, match='The GitHub URL must be a Braket or Qiskit quantum circuit'):
             scheduled_circuit, shots, times = self.scheduler.schedule(circuit, self.common_values["shots"], max_qubits=self.common_values["max_qubits"])
 
     def test_schedule_no_qubits_braket_circuit(self):
         circuit = braket.circuits.Circuit()
-        with pytest.raises(ValueError, match="The circuit must have at least one qubit and one gate"):
+        with pytest.raises(ValueError, match='The circuit must have at least one qubit and one gate'):
             scheduled_circuit, shots, times = self.scheduler.schedule(circuit, self.common_values["shots"], max_qubits=self.common_values["max_qubits"])
 
     def test_schedule_no_qubits_qiskit_circuit(self):
         circuit = qiskit.QuantumCircuit()
-        with pytest.raises(ValueError, match="The qiskit circuit must contain a quantum and classical register"):
+        with pytest.raises(ValueError, match='The circuit must have at least one qubit and one gate'):
             scheduled_circuit, shots, times = self.scheduler.schedule(circuit, self.common_values["shots"], max_qubits=self.common_values["max_qubits"])
 
     def test_schedule_no_classical_register_qiskit_circuit(self):
         qreg = qiskit.QuantumRegister(2)
         circuit = qiskit.QuantumCircuit(qreg)
-        with pytest.raises(ValueError, match="The qiskit circuit must contain a quantum and classical register"):
+        with pytest.raises(ValueError, match='The qiskit circuit must contain a quantum and classical register'):
             scheduled_circuit, shots, times = self.scheduler.schedule(circuit, self.common_values["shots"], max_qubits=self.common_values["max_qubits"])
 
     def test_schedule_no_quantum_register_qiskit_circuit(self):
         creg = qiskit.ClassicalRegister(2)
         circuit = qiskit.QuantumCircuit(creg)
-        with pytest.raises(ValueError, match="The qiskit circuit must contain a quantum and classical register"):
+        with pytest.raises(ValueError, match="The circuit must have at least one qubit and one gate"):
             scheduled_circuit, shots, times = self.scheduler.schedule(circuit, self.common_values["shots"], max_qubits=self.common_values["max_qubits"])
         
     def test_schedule_qiskit_circuit_without_gates(self):

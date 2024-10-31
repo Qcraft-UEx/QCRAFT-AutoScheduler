@@ -1,3 +1,12 @@
+## [1.1.0] - 2024-10-31
+### Added
+- Added compatibility with more gates, including S, T, rotation gates... and multicontrolled gates for both Qiskit and Amazon Braket
+- Added new tests for `translator`
+
+### Changed
+- Improved internal handling of circuit objects for better compatibility
+- Changed Qiskit Runtime primitive backend.run() to the modern V2 primitives
+
 ## [1.0.0] - 2024-10-04
 ### Added
 - Increased the Sphinx documentation with `changelog.rst` and `introduction.rst` reStructuredText files

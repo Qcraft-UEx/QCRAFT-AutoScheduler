@@ -1,7 +1,6 @@
 """
 Module containing the unscheduling of the results so the users can see the results formatted as in the original circuit
 """
-
 def _divideResults(counts:dict, shots:list, provider:str, qb:list, users:list, circuit_name:list) -> list:
     """
     Divides the results of a circuit execution among the users that executed it.
@@ -19,7 +18,7 @@ def _divideResults(counts:dict, shots:list, provider:str, qb:list, users:list, c
     """
     result = []
     for i in range(len(shots)):
-        
+
         newCounts = {}
 
         for key, value in counts.items(): #Reducing each dictionary so that it contains the useful part of each user
@@ -32,7 +31,7 @@ def _divideResults(counts:dict, shots:list, provider:str, qb:list, users:list, c
             else:
                 data = key[leftRemovedQubits:]  #Data is the custom value of each user
                 data = data[:(len(data)-rightRemovedQubits)]
-            
+
             if data in newCounts:
                 newCounts[data] += value
             else:

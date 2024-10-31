@@ -1,22 +1,21 @@
 """
 Module containing the Autoscheduler class
 """
-
-from urllib.parse import urlparse
-import braket.circuits
-import requests
+from typing import Union, Tuple, Optional
 import re
+import math
+import ast
+from urllib.parse import unquote, urlparse
+import numpy as np
+import requests
+import qiskit
+import braket
+from braket.circuits import Circuit
 from ._executeCircuitIBM import _runIBM, _get_qubits_machine_ibm
 from ._executeCircuitAWS import _runAWS, _get_qubits_machine_aws
 from ._divideResults import _divideResults
 from ._translator import _get_ibm_individual, _get_aws_individual
-import math
-import ast
-from urllib.parse import unquote
-import qiskit
-import braket
-from typing import Union, Tuple, Optional
-import numpy as np
+
 
 class Autoscheduler:
     """
@@ -24,16 +23,16 @@ class Autoscheduler:
     
     The supported quantum circuit types are Qiskit and Braket. It can also work with GitHub raw URLs containing a circuit or Quirk URLs.
     """
-    def __init__(self): 
+    def __init__(self):
         """
         Initializes a new instance of the Autoscheduler class, capable of composing quantum circuits with themselves to reduce the number of shots needed to execute them.
         The circuit can be a Qiskit circuit, a Braket circuit, a GitHub raw URL with a circuit, or a Quirk URL.
 
         The new instance will prepare the Autoscheduler to work with the available circuit types.
         """
-        self._available_circuit_types = {'braket':braket.circuits.circuit.Circuit, 'qiskit':qiskit.circuit.quantumcircuit.QuantumCircuit} #A dictionary mapping the names of circuit types ('braket' and 'qiskit') to their corresponding classes.
-        
-    def schedule(self, circuit: Union[qiskit.QuantumCircuit, braket.circuits.circuit.Circuit, str], shots:int, machine: Optional[str] = None, max_qubits:Optional[int] = None, provider: Optional[str] = None) -> Tuple[Union[qiskit.QuantumCircuit, braket.circuits.circuit.Circuit], int, int]:
+        self._available_circuit_types = {'braket':braket.circuits.Circuit, 'qiskit':qiskit.QuantumCircuit} #A dictionary mapping the names of circuit types ('braket' and 'qiskit') to their corresponding classes.
+
+    def schedule(self, circuit: Union[qiskit.QuantumCircuit, Circuit, str], shots:int, machine: Optional[str] = None, max_qubits:Optional[int] = None, provider: Optional[str] = None) -> Tuple[Union[qiskit.QuantumCircuit, Circuit], int, int]:
          # Compose the circuit, it can be a circuit, github url of a circuit or quirk url of a circuit
         """
         Composes the circuit multiple time to reduce the number of shots needed to execute the circuit.
@@ -54,37 +53,39 @@ class Autoscheduler:
         """
         if circuit is None:
             raise TypeError("Circuit cannot be None.")
-        elif isinstance(circuit, (int, float)):
+        if isinstance(circuit, (int, float)):
             raise TypeError("Circuit cannot be a number.")
-        elif max_qubits is None and machine is None:
+        if max_qubits is None and machine is None:
             raise ValueError("Either max_qubits or machine must be specified.")
-        elif not isinstance(circuit, str) and any(isinstance(circuit, ctype) for ctype in self._available_circuit_types.values()): #Circuit object
+        if not isinstance(circuit, str) and any(isinstance(circuit, ctype) for ctype in self._available_circuit_types.values()): #Circuit object
             circuit, qubits, provider = self._get_qubits_circuit_object(circuit) #Get the string circuit of the cicuit, also the qubits and the provider to check if its fits within the max_qubits
             max_qubits = self._get_qubits_machine(machine, provider) if max_qubits is None else max_qubits
             if max_qubits < qubits:
                 raise ValueError("Circuit too large")
-            composed_circuit,shots,times = self._create_circuit_circuit(max_qubits, qubits, circuit, shots, provider)  # Based on the circuit, it composes itself multiple times
+            circ,shots,times = self._compose_circuit(max_qubits, qubits, circuit, shots, provider)  # Based on the circuit, it composes itself multiple times
         elif 'algassert' in circuit:
-            if provider == None:
+            if provider is None:
                 raise ValueError("Provider not specified")
             qubits = self._get_qubits_url(circuit) #Analyzes the quirk url that includes the circuit to get the qubits it has to check if it fits within the max_qubits
             max_qubits = self._get_qubits_machine(machine, provider) if max_qubits is None else max_qubits
             if max_qubits < qubits:
                 raise ValueError("Circuit too large")
             composed_circuit,shots,times = self._create_circuit_url(max_qubits, qubits, circuit, shots, provider) #Based on the quirk url, it uses the translator to transform it into a string with the gates
-        elif 'github' in circuit: 
+            circ = self._get_composed_circuit(composed_circuit, provider)
+        elif 'github' in circuit:
             circuit, qubits, provider = self._get_qubits_circuit(circuit) #Gets the content of the github raw file to retrieve the circuit, it parses it and transforms it into a normalized circuit, also gets the qubit number to check if it fits within the max_qubits
             max_qubits = self._get_qubits_machine(machine, provider) if max_qubits is None else max_qubits
             if max_qubits < qubits:
                 raise ValueError("Circuit too large")
             composed_circuit,shots,times = self._create_circuit_circuit(max_qubits, qubits, circuit, shots, provider) # Creates the composed circuit
+            circ = self._get_composed_circuit(composed_circuit, provider)
         else:
             raise TypeError("Invalid circuit format. Expected a circuit object, a Quirk URL, or a GitHub URL.")
-        
-        return self._get_composed_circuit(composed_circuit, provider), shots, times
-    
 
-    def execute(self, circuit: Union[qiskit.QuantumCircuit, braket.circuits.circuit.Circuit], shots: int, machine: str, times: int, s3_bucket: Optional[tuple] = None) -> dict: # Executes the circuit
+        return circ, shots, times
+
+
+    def execute(self, circuit: Union[qiskit.QuantumCircuit, Circuit], shots: int, machine: str, times: int, s3_bucket: Optional[tuple] = None) -> dict: # Executes the circuit
         """
         Executes a scheduled circuit and transform the results in the same format as the original circuit.
 
@@ -100,6 +101,7 @@ class Autoscheduler:
 
         Raises: 
             ValueError: If the `s3_bucket` is not specified on a AWS execution in the cloud; or if the `machine` is not available on the IBM or AWS account.
+            TypeError: If the `circuit` is None or an invalid format.
         """
         if isinstance(circuit, qiskit.circuit.quantumcircuit.QuantumCircuit):
             provider = 'ibm'
@@ -107,8 +109,10 @@ class Autoscheduler:
         elif isinstance(circuit, braket.circuits.circuit.Circuit):
             provider = 'aws'
             qubits = circuit.qubit_count
+        else:
+            raise TypeError("Invalid circuit format. Expected a circuit object.")
 
-        if provider == 'aws' and s3_bucket == None and machine != 'local':
+        if provider == 'aws' and s3_bucket is None and machine != 'local':
             raise ValueError("S3 Bucket not specified")
 
         if provider == "ibm":
@@ -118,7 +122,7 @@ class Autoscheduler:
         return self._decompose(counts,shots,qubits,times, provider)
 
 
-    def schedule_and_execute(self, circuit:Union[qiskit.QuantumCircuit, braket.circuits.circuit.Circuit, str], shots:int, machine:str, max_qubits:Optional[int] = None, provider:Optional[str] = None, s3_bucket:Optional[tuple] = None) -> dict: # Compose the circuit
+    def schedule_and_execute(self, circuit:Union[qiskit.QuantumCircuit, Circuit, str], shots:int, machine:str, max_qubits:Optional[int] = None, provider:Optional[str] = None, s3_bucket:Optional[tuple] = None) -> dict: # Compose the circuit
         """
         Composes the circuit multiple time to reduce the number of shots needed to execute the circuit and also executes it.
 
@@ -139,36 +143,36 @@ class Autoscheduler:
         """
         if circuit is None:
             raise TypeError("Circuit cannot be None.")
-        elif isinstance(circuit, (int, float)):
+        if isinstance(circuit, (int, float)):
             raise TypeError("Circuit cannot be a number.")
-        elif not isinstance(circuit, str) and any(isinstance(circuit, ctype) for ctype in self._available_circuit_types.values()): #Circuit object
+        if not isinstance(circuit, str) and any(isinstance(circuit, ctype) for ctype in self._available_circuit_types.values()): #Circuit object
             circuit, qubits, provider = self._get_qubits_circuit_object(circuit) #Get the string circuit of the cicuit, also the qubits and the provider to check if its fits within the max_qubits
             max_qubits = self._get_qubits_machine(machine, provider) if max_qubits is None else max_qubits
             if max_qubits < qubits:
                 raise ValueError("Circuit too large")
-            composed_circuit,shots,times = self._create_circuit_circuit(max_qubits, qubits, circuit, shots, provider)  # Based on the circuit, it composes itself multiple times
+            composed_circuit,shots,times = self._compose_circuit(max_qubits, qubits, circuit, shots, provider)  # Based on the circuit, it composes itself multiple times
         elif 'algassert' in circuit:
-            if provider == None:
+            if provider is None:
                 raise ValueError("Provider not specified")
             qubits = self._get_qubits_url(circuit) #Analyzes the quirk url that includes the circuit to get the qubits it has to check if it fits within the max_qubits
             max_qubits = self._get_qubits_machine(machine, provider) if max_qubits is None else max_qubits
             if max_qubits < qubits:
                 raise ValueError("Circuit too large")
             composed_circuit,shots,times = self._create_circuit_url(max_qubits, qubits, circuit, shots, provider) #Based on the quirk url, it uses the translator to transform it into a string with the gates
-        elif 'github' in circuit: 
+            circuit = self._get_composed_circuit(composed_circuit, provider)
+        elif 'github' in circuit:
             circuit, qubits, provider = self._get_qubits_circuit(circuit) #Gets the content of the github raw file to retrieve the circuit, it parses it and transforms it into a normalized circuit, also gets the qubit number to check if it fits within the max_qubits
             max_qubits = self._get_qubits_machine(machine, provider) if max_qubits is None else max_qubits
             if max_qubits < qubits:
                 raise ValueError("Circuit too large")
             composed_circuit,shots,times = self._create_circuit_circuit(max_qubits, qubits, circuit, shots, provider) # Creates the composed circuit
+            circuit = self._get_composed_circuit(composed_circuit, provider)
         else:
             raise TypeError("Invalid circuit format. Expected a circuit object, a Quirk URL, or a GitHub URL.")
 
-        circuit = self._get_composed_circuit(composed_circuit, provider)
-
         results = self.execute(circuit, shots, machine, times, s3_bucket)
         return results
-        
+
 
     def _get_qubits_url(self, circuit:str) -> int: # Gets the qubits from a circuit based on its quirk url
         """
@@ -188,10 +192,10 @@ class Autoscheduler:
             circuit_str = fragment[len('circuit='):]
             circuit = ast.literal_eval(unquote(circuit_str))
             qubits = max(len(col) for col in circuit['cols'] if 1 not in col)
-        except:
-            raise ValueError("Invalid Quirk URL")
+        except Exception as e:
+            raise ValueError("Invalid Quirk URL") from e
         return qubits
-    
+
     def _create_circuit_url(self, max_qubits:int, qubits:int, circuit:str, shots:int, provider:str)-> Tuple[str,int,int]: # Creates the composed circuit based on a quirk url
         """
         Creates a string with the composed circuit based on a Quirk URL.
@@ -252,7 +256,7 @@ class Autoscheduler:
         """
         #First, it gets the circuit from the github url
         response = self._fetch_circuit(circuit)
-        
+
         circuit = response.text
         lines = circuit.split('\n')
         importAWS = next((line for line in lines if 'braket.circuits' in line), None)
@@ -264,8 +268,8 @@ class Autoscheduler:
         circuit, num_qubits = self._analyze_circuit(importIBM, importAWS, lines) # Circuit normalization to get circuit, qr, cr, etc to work better with the circuit string
         provider = 'ibm' if importIBM else 'aws' if importAWS else None
         return circuit, num_qubits, provider
-    
-    def _get_qubits_circuit_object(self, circuit: Union[qiskit.QuantumCircuit, braket.circuits.circuit.Circuit]) -> Tuple[str,int,str]: # Get qubits from a circuit object (first it transforms it into a circuit string and reads the number of qubits)
+
+    def _get_qubits_circuit_object(self, circuit: Union[qiskit.QuantumCircuit, Circuit]) -> Tuple[Union[qiskit.QuantumCircuit, Circuit],int,str]: # Get qubits from a circuit object (first it transforms it into a circuit string and reads the number of qubits)
         """
         Obtains the number of qubits of a circuit, it also changes the original circuit to be make it a string.
 
@@ -273,26 +277,33 @@ class Autoscheduler:
             circuit (qiskit.QuantumCircuit | braket.circuits.Circuit): The circuit that will be analyzed.
         
         Returns:
-            tuple: A 3-tuple containing the composed circuit (str), the number of qubits of the circuit (int), and the provider of the circuit, that can be either 'ibm' or 'aws' (str).
+            tuple: A 3-tuple containing the composed circuit (qiskit.QuantumCircuit | braket.circuits.Circuit), the number of qubits of the circuit (int), and the provider of the circuit, that can be either 'ibm' or 'aws' (str).
+
+        Raises:
+            TypeError: If the circuit is not a Qiskit or Braket circuit.
         """
         importAWS, importIBM = False, False
         #Checks the provider to create the circuit string based on that. The circuit string is created becase is needed to create the composed circuit easily by looping and adding the gates again but changing the qubit number
         if isinstance(circuit, qiskit.circuit.quantumcircuit.QuantumCircuit):
             importIBM = True
-            circuit = self._circuit_to_code_ibm(circuit)
+            num_qubits = circuit.num_qubits
+            #circuit = self._circuit_to_code_ibm(circuit)
         elif isinstance(circuit, braket.circuits.circuit.Circuit):
             importAWS = True
-            circuit = self._circuit_to_code_aws(circuit)
-        
-        lines = circuit.split('\n')
+            num_qubits = circuit.qubit_count
+            #circuit = self._circuit_to_code_aws(circuit)
+        else:
+            raise TypeError("Invalid circuit type. Expected a Qiskit or Braket circuit.")
+
+        #lines = circuit.split('\n')
         # Check if in lines there is a QuantumCircuit or a Circuit
 
-        qc, num_qubits = self._analyze_circuit(importIBM, importAWS, lines) #Gets the number of qubits of the circuit and also puts it in a easy way to handle it, naming it into a specific way (circuit, qr, cr...)
+        #qc, num_qubits = self._analyze_circuit(importIBM, importAWS, lines) #Gets the number of qubits of the circuit and also puts it in a easy way to handle it, naming it into a specific way (circuit, qr, cr...)
 
         provider = 'ibm' if importIBM else 'aws' if importAWS else None
 
-        return qc, num_qubits, provider
-    
+        return circuit, num_qubits, provider
+
     def _circuit_to_code_ibm(self, circuit: qiskit.QuantumCircuit) -> str: #This function transforms the ibm circuit to the original code in a string
         """
         Parses the ibm circuit into a string
@@ -310,9 +321,9 @@ class Autoscheduler:
         try:
             qreg_name = next(iter(circuit.qregs)).name
             creg_name = next(iter(circuit.cregs)).name
-        except:
-            raise ValueError('The qiskit circuit must contain a quantum and classical register')
-        
+        except Exception as e:
+            raise ValueError('The qiskit circuit must contain a quantum and classical register') from e
+
 
         code += f"{qreg_name} = QuantumRegister({circuit.num_qubits}, '{qreg_name}')\n"
         code += f"{creg_name} = ClassicalRegister({circuit.num_clbits}, '{creg_name}')\n"
@@ -334,8 +345,8 @@ class Autoscheduler:
                 code += f"circuit.{gate_name}({qubit_indices})\n"
 
         return code
-    
-    def _circuit_to_code_aws(self, circuit: braket.circuits.circuit.Circuit)->str: # To get the aws circuit object and transforming to a string
+
+    def _circuit_to_code_aws(self, circuit: Circuit)->str: # To get the aws circuit object and transforming to a string
         """
         Parses the aws circuit into a string.
 
@@ -405,7 +416,7 @@ class Autoscheduler:
             circuit = circuit.replace(file_circuit_name+'.', 'circuit.')
             circuit = circuit.replace(f'{qreg}[', 'qreg_q[')
             circuit = circuit.replace(f'{creg}[', 'creg_c[')
-           
+
             # Create an array with the same length as the number of qubits initialized to 0 to count the number of gates on each qubit
             qubits = [0] * num_qubits
             for line in circuit.split('\n'): # For each line in the circuit
@@ -414,7 +425,7 @@ class Autoscheduler:
                     # This adds 1 to the number of gates used on that qubit
                     for match in re.finditer(r'qreg_q\[(\d+)\]', line):
                         qubits[int(match.group(1))] += 1
-            
+
             qc = circuit
 
         elif importAWS:
@@ -439,23 +450,23 @@ class Autoscheduler:
                         # These gates have a parameter
                         numbers_retrieved = re.findall(r'\d+', line)
                         numbers = numbers_retrieved[0] if numbers_retrieved else None
-                        
+
                     elif gate_name in ['xx', 'yy', 'zz', 'ms'] or 'cphase' in gate_name:
                         # These gates have 2 or more parameters
                         numbers_retrieved = re.findall(r'\d+', line)
-                        numbers = numbers[:2] if numbers_retrieved else None  
-                        
+                        numbers = numbers[:2] if numbers_retrieved else None
+
                     else:
                         # These gates have no parameters
                         numbers = re.findall(r'\d+', line)
-                    
+
                     for elem in numbers:
                         if elem not in qubits:
                             qubits[elem] = 0
                         else:
                             qubits[elem] += 1
             num_qubits = len(qubits.values())
-            
+
             qc = circuit
 
         if num_qubits == 0 or qubits == [] or max(qubits) == 0:
@@ -463,7 +474,64 @@ class Autoscheduler:
         if qc is None:
             raise ValueError('The input is not a quantum circuit')
         return qc, num_qubits
-    
+
+    def _compose_circuit(self, max_qubits:int, qubits:int, circuit:Union[qiskit.QuantumCircuit, Circuit], shots:int, provider:str) -> Tuple[Union[qiskit.QuantumCircuit, Circuit],int,int]:
+        """
+        Composes a quantum circuit based on a an object multiple times.
+
+        Args:
+            max_qubits (int): The maximum number of qubits that the composed circuit can have.
+            qubits (int): The number of qubits of the circuit.            
+            circuit (Union[qiskit.QuantumCircuit, braket.circuits.Circuit]): The circuit that will be composed.            
+            shots (int): The initial number of shots that the composed circuit will be executed.            
+            provider (str): The provider of the circuit. It can be 'ibm', 'aws'.
+        
+        Returns:
+            tuple: A 3-tuple containing the composed circuit (Union[qiskit.QuantumCircuit, braket.circuits.Circuit]), the new and reduced number of shots for the scheduled circuit (int), and the number of times the circuit was composed to reduce the number of shots (int).
+
+        Raises:
+            ValueError: If the qiskit circuit does not contain a quantum and classical register.
+            ValueError: If the circuit does not contain a qubit and a gate.
+        """
+        if qubits == 0:
+            raise ValueError('The circuit must have at least one qubit and one gate')
+
+        times =  max_qubits // qubits
+        shots = math.ceil(shots / times)
+        if provider == "ibm":
+
+            if len(circuit.qregs) == 0 or len(circuit.cregs) == 0:
+                raise ValueError('The qiskit circuit must contain a quantum and classical register')
+
+            if len(circuit.data) == 0:
+                raise ValueError('The circuit must have at least one qubit and one gate')
+
+            circuit_part = circuit.to_instruction(label='original_circuit')
+
+            qreg = qiskit.QuantumRegister(times*qubits, 'qreg_q')
+            creg = qiskit.ClassicalRegister(times*qubits, 'creg_c')
+            qc = qiskit.QuantumCircuit(qreg, creg)
+
+            for i in range(times):
+                qc.append(circuit_part, qreg[i*qubits:qubits + i*qubits], creg[i*qubits:qubits + i*qubits])
+
+            qc = qc.decompose()
+
+        if provider == "aws":
+
+            circuit_part = circuit
+
+            if len(circuit.instructions) == 0:
+                raise ValueError('The circuit must have at least one qubit and one gate')
+
+            qc = braket.circuits.Circuit()
+
+            for i in range(times):
+                qc.add_circuit(circuit=circuit_part, target=[i*qubits + j for j in range(qubits)])
+
+        return qc, shots, times
+
+
     def _create_circuit_circuit(self, max_qubits:int, qubits:int, circuit:str, shots:int, provider:str) -> Tuple[str,int,int]: # Create the composed circuit
         """
         Composes a quantum circuit based on a string multiple times.
@@ -481,6 +549,7 @@ class Autoscheduler:
         # First, check how many times it can be composed based on the shots
         times =  max_qubits // qubits
         shots = math.ceil(shots / times)
+
         # It composes itself, adding the base circuit and the same base circuit with changing the qubits
         qc = circuit
         for i in range(times-1):
@@ -494,7 +563,7 @@ class Autoscheduler:
                 lines = edited_circuit.split('\n')
                 for line in lines:
                     gate_name = re.search(r'circuit\.(.*?)\(', line).group(1)
-                
+
                     if gate_name in ['rx', 'ry', 'rz', 'gpi', 'gpi2', 'phaseshift']:
                         # These gates have a parameter
                         # Edit the first parameter
@@ -503,13 +572,13 @@ class Autoscheduler:
                         # These gates have 2 parameters
                         # Edit the first and second parameters
                         new_edited_circuit += re.sub(rf'{gate_name}\((\d+),\s*(\d+)', lambda m: f"{gate_name}({int(m.group(1)) + (i+1)*qubits},{int(m.group(2)) + (i+1)*qubits}", line, count=1)+'\n'
-                        
+
                     else:
                         # These gates have no parameters, so change the number of qubits on all
                         new_edited_circuit += re.sub(r'(\d+)', lambda m: str(int(m.group(1)) + (i+1)*qubits), line)+'\n'
-                
+
                 edited_circuit = new_edited_circuit
-                    
+
             qc += '\n' + edited_circuit  # Add newline before appending
 
         # Adds the needed dependencies to it can be converted to a true circuit object after
@@ -517,6 +586,7 @@ class Autoscheduler:
             qc = (
                 "from numpy import pi\n"
                 "import numpy as np\n"
+                "from qiskit.circuit.library import MCXGate, MCMT\n"
                 "from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit\n"
                 f"qreg_q = QuantumRegister({qubits*(times)}, 'q')\n"
                 f"creg_c = ClassicalRegister({qubits*(times)}, 'c')\n"
@@ -553,7 +623,7 @@ class Autoscheduler:
         users = [0] * times
         circuit_name = [0] * times
         shots = [shots] * times
-        qubits = [qubits_per_composition] * times  
+        qubits = [qubits_per_composition] * times
         results = _divideResults(counts, shots, provider, qubits, users, circuit_name)
         circuit_results = {}
 
@@ -565,8 +635,8 @@ class Autoscheduler:
                     circuit_results[key] += value
 
         return circuit_results
-    
-    def _get_composed_circuit(self, circuit:str, provider:str) -> Union[qiskit.QuantumCircuit, braket.circuits.circuit.Circuit]: # Get the composed circuit object
+
+    def _get_composed_circuit(self, circuit:str, provider:str) -> Union[qiskit.QuantumCircuit, Circuit]: # Get the composed circuit object
         """
         Transforms a string representation of a circuit into a Qiskit or Braket circuit.
 
@@ -576,14 +646,17 @@ class Autoscheduler:
         
         Returns:
             qiskit.QuantumCircuit | braket.circuits.Circuit: The circuit object.
+
+        Raises:
+            TypeError: If the provider is not 'ibm' or 'aws'.
         """
         if provider == 'ibm':
             return self._code_to_circuit_ibm(circuit)
-        elif provider == 'aws':
+        if provider == 'aws':
             return self._code_to_circuit_aws(circuit)
-        else:
-            return None
-    
+
+        raise TypeError("Invalid provider. Expected 'ibm' or 'aws'.")
+
     def _code_to_circuit_ibm(self, code_str:str) -> qiskit.QuantumCircuit: #Inverse parser to get the circuit object from the string
         """
         Transforms a string representation of a circuit into a Qiskit circuit
@@ -634,6 +707,30 @@ class Autoscheduler:
                             else: #For barrier(qreg[0], qreg[1], ...)
                                 qubits = [qreg[int(arg.split('[')[1].strip(']').split('+')[0]) + int(arg.split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in arg else int(arg.split('[')[1].strip(']'))] for arg in args if '[' in arg]
                                 circuit.barrier(qubits)
+                        elif gate_name == "append":
+                            gate_type = args[0]
+                            args_no_gate = args[1:]
+                            if args_no_gate:
+                                if args_no_gate[0].startswith('['):
+                                    args_no_gate[0] = args_no_gate[0][1:]
+                                if args_no_gate[-1].endswith(']'):
+                                    args_no_gate[-1] = args_no_gate[-1][:-1]
+                            qubits = [qreg[int(arg.split('[')[1].strip(']').split('+')[0]) + int(arg.split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in arg else int(arg.split('[')[1].strip(']'))] for arg in args_no_gate if '[' in arg]
+                            control_qubits = qubits[:-1]
+                            target_qubit = qubits[-1]
+                            if gate_type == 'mc_x_gate':
+                                mcx = qiskit.circuit.library.MCXGate(len(control_qubits))
+                                circuit.append(mcx, control_qubits + [target_qubit])
+                            elif gate_type == 'mc_y_gate':
+                                circuit.sdg(target_qubit)
+                                mcx = qiskit.circuit.library.MCXGate(len(control_qubits))
+                                circuit.append(mcx, control_qubits + [target_qubit])
+                                circuit.s(target_qubit)
+                            elif gate_type == 'mc_z_gate':
+                                circuit.h(target_qubit)
+                                mcx = qiskit.circuit.library.MCXGate(len(control_qubits))
+                                circuit.append(mcx, control_qubits + [target_qubit])
+                                circuit.h(target_qubit)
                         else:
                             qubits = [qreg[int(arg.split('[')[1].strip(']').split('+')[0]) + int(arg.split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in arg else int(arg.split('[')[1].strip(']'))] for arg in args if '[' in arg]
                             params = [eval(arg, {"__builtins__": None, "np": np}, {}) for param_str in args if '[' not in param_str for arg in param_str.split(',')]
@@ -643,11 +740,11 @@ class Autoscheduler:
                                 val = int(val.strip())
                                 gate_operation.c_if(creg, val)
         except Exception as e:
-            raise ValueError("Invalid circuit code")
+            raise ValueError("Invalid circuit code") from e
 
         return circuit
-    
-    def _code_to_circuit_aws(self, code_str:str) -> braket.circuits.circuit.Circuit: #Inverse parser to get the circuit object from the string
+
+    def _code_to_circuit_aws(self, code_str:str) -> Circuit: #Inverse parser to get the circuit object from the string
         """
         Transforms a string representation of a circuit into a Braket circuit.
 
@@ -692,13 +789,13 @@ class Autoscheduler:
                     else:
                         args = operation.split('(')[1].strip(')').split(',')
                         target_qubits = [int(arg.split('+')[0]) + int(arg.split('+')[1].strip(') ')) if '+' in arg else int(arg.strip(') ').strip()) for arg in args if not any(c.isalpha() for c in arg)]
-                        params = [eval(arg, {"__builtins__": None}, safe_namespace) for arg in args if any(c.isalpha() for c in arg)]
+                        #params = [eval(arg, {"__builtins__": None}, safe_namespace) for arg in args if any(c.isalpha() for c in arg)]
                         getattr(circuit, gate_name)(*target_qubits)
         except Exception as e:
-            raise ValueError("Invalid circuit code")
-                
+            raise ValueError("Invalid circuit code") from e
+
         return circuit
-    
+
     def _fetch_circuit(self, circuit:str) -> requests.Response: # Get the content of the github url
         """
         Gets the content of a GitHub URL file.
@@ -722,12 +819,12 @@ class Autoscheduler:
             response = requests.get(circuit, timeout=5.0)
             response.raise_for_status()
             # Get the name of the file
-        except requests.exceptions.Timeout:
-            raise ValueError("Request timed out")
+        except requests.exceptions.Timeout as e:
+            raise ValueError("Request timed out") from e
         except requests.exceptions.RequestException as e:
-            raise ValueError("Invalid URL, error getting URL content")
+            raise ValueError("Invalid URL, error getting URL content") from e
         return response
-    
+
     def _get_qubits_machine(self, machine, provider):
         """
         Gets the number of qubits of the machine.
@@ -741,8 +838,12 @@ class Autoscheduler:
 
         Raises:
             ValueError: If the machine is not available.
+            TypeError: If the provider is invalid.
         """
         if provider == "ibm":
             return _get_qubits_machine_ibm(machine)
-        elif provider == "aws":
+        if provider == "aws":
             return _get_qubits_machine_aws(machine)
+
+        raise TypeError("Invalid provider")
+    

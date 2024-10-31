@@ -6,4 +6,3 @@ from .autoscheduler import Autoscheduler
 from ._version import __version__
 
 __all__ = ['Autoscheduler']
-

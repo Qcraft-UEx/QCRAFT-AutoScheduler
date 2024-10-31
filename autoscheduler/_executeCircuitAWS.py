@@ -1,16 +1,12 @@
 """
 Module containing AWS execution functions
 """
-
-from braket.devices import LocalSimulator
-from braket.aws import AwsDevice
+from typing import Optional
+import time
 from braket.devices import LocalSimulator
 from braket.aws import AwsDevice
 from braket.aws.aws_quantum_task import AwsQuantumTask
 from braket.circuits import Circuit
-from typing import Optional
-import time
-
 
 def _recover_task_result(task_load: AwsQuantumTask) -> dict:
     """
@@ -31,9 +27,9 @@ def _recover_task_result(task_load: AwsQuantumTask) -> dict:
         if status == 'COMPLETED':
             # get results
             return task_load.result()
-        else:
-            time.sleep(1)
-            sleep_times = sleep_times + 1
+        
+        time.sleep(1)
+        sleep_times = sleep_times + 1
     print("Quantum execution time exceded")
     return None
 
@@ -60,28 +56,29 @@ def _runAWS(machine:str, circuit:Circuit, shots:int, s3_bucket: Optional[tuple] 
         result = device.run(circuit, shots=x).result()
         counts = result.measurement_counts
         return counts
-    
-    #Check if the machine is available, also if the user used a name, it changes machine to the ARN of the device
-    available_devices = AwsDevice.get_devices()
-    available_devices_names = [device.name for device in available_devices]
-    available_devices_arn = [device.arn for device in available_devices]
-    if machine not in available_devices_names and machine not in available_devices_arn:
-        raise ValueError(f"Machine {machine} not available.")
+
     else:
+        #Check if the machine is available, also if the user used a name, it changes machine to the ARN of the device
+        available_devices = AwsDevice.get_devices()
+        available_devices_names = [device.name for device in available_devices]
+        available_devices_arn = [device.arn for device in available_devices]
+        if machine not in available_devices_names and machine not in available_devices_arn:
+            raise ValueError(f"Machine {machine} not available.")
+
         if machine in available_devices_names:
             machine = available_devices[available_devices_names.index(machine)].arn
         device = AwsDevice(machine)
 
-    if "sv1" not in machine and "tn1" not in machine:
-        task = device.run(circuit, s3_bucket, shots=x, poll_timeout_seconds=5 * 24 * 60 * 60)
-        counts = _recover_task_result(task).measurement_counts
-        return counts
-    else:
+        if "sv1" not in machine and "tn1" not in machine:
+            task = device.run(circuit, s3_bucket, shots=x, poll_timeout_seconds=5 * 24 * 60 * 60)
+            counts = _recover_task_result(task).measurement_counts
+            return counts
+
         task = device.run(circuit, s3_bucket, shots=x)
         counts = task.result().measurement_counts
         return counts
 
-def _get_qubits_machine_aws(machine):
+def _get_qubits_machine_aws(machine:str) -> int:
     """
     Returns the number of qubits of the selected AWS machine.
 
@@ -102,8 +99,8 @@ def _get_qubits_machine_aws(machine):
         available_devices_arn = [device.arn for device in available_devices]
         if machine not in available_devices_names and machine not in available_devices_arn:
             raise ValueError(f"Machine {machine} not available.")
-        else:
-            if machine in available_devices_names:
-                machine = available_devices[available_devices_names.index(machine)].arn
-            device = AwsDevice(machine)
+        
+        if machine in available_devices_names:
+            machine = available_devices[available_devices_names.index(machine)].arn
+        device = AwsDevice(machine)
     return device.properties.dict()['paradigm']['qubitCount']
