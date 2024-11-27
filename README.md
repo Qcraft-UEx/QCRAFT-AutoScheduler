@@ -5,16 +5,16 @@
    </picture>
 </p>
 
-# QCRAFT AutoSchedulQ
+# QCRAFT AutoScheduler
 [![PyPI Version](https://img.shields.io/pypi/v/autoscheduler.svg)](https://pypi.org/project/autoscheduler/)
 ![Python Versions](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11%20|%203.12-blue.svg)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Qcraft-UEx/QCRAFT/blob/main/LICENSE)
 
-QCRAFT AutoSchedulQ: a library that allows users to automatically schedule the execution of their own quantum circuits, improving efficiency and reducing execution times in quantum computing environments. With this library, your Qiskit or Braket quantum circuit will be modified to increase its length but also decreasing the number of shots needed to execute it, getting a new circuit that needs more qubits but less shots to get the same result as the original circuit.
+QCRAFT AutoScheduler: a library that allows users to automatically schedule the execution of their own quantum circuits, improving efficiency and reducing execution times in quantum computing environments. With this library, your Qiskit or Braket quantum circuit will be modified to increase its length but also decreasing the number of shots needed to execute it, getting a new circuit that needs more qubits but less shots to get the same result as the original circuit.
 
 ## Installation
 
-You can install QCRAFT AutoSchedulQ and all its dependencies using pip:
+You can install QCRAFT AutoScheduler and all its dependencies using pip:
 
 ```bash
 pip install autoscheduler
@@ -23,14 +23,14 @@ pip install autoscheduler
 You can also install from source by cloning the repository and installing from source:
 
 ```bash
-git clone https://github.com/Qcraft-UEx/QCRAFT-AutoSchedulQ.git
+git clone https://github.com/Qcraft-UEx/QCRAFT-AutoScheduler.git
 cd autoscheduler
 pip install .
 ```
 
 ## Usage
 
-Here is a basic example on how to use Autoscheduler with a Quirk URL, when using a Quirk URL, it is mandatory to include the provider ('ibm' or 'aws') as an input.
+Here is a basic example on how to use AutoScheduler with a Quirk URL, when using a Quirk URL, it is mandatory to include the provider ('ibm' or 'aws') as an input.
 ```python
 from autoscheduler import Autoscheduler
 
@@ -183,7 +183,7 @@ autoscheduler = Autoscheduler()
 results = autoscheduler.schedule_and_execute(circuit, shots, 'ibm_brisbane')
 
 ```
-QCRAFT AutoschedulQ will utilize the default AWS and IBM Cloud credentials stored on the machine for cloud executions.
+QCRAFT AutoScheduler will utilize the default AWS and IBM Cloud credentials stored on the machine for cloud executions.
 
 ## Optimizing Quantum Tasks
 This library aims for the shot optimization on quantum tasks. Reducing the cost of the circuit on the end-user.
