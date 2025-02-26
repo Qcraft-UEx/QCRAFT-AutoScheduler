@@ -694,7 +694,7 @@ class Autoscheduler:
                             condition = None
                         # Parse gate operations
                         gate_name = operation.split('circuit.')[1].split('(')[0]
-                        args = re.split(r'\s*,\s*', operation.split('(')[1].strip(')').strip())
+                        args = re.split(r'\s*,\s*', operation.split('(', 1)[1].rsplit(')', 1)[0].strip())
                         if gate_name == "measure":
                             qubit = qreg[int(args[0].split('[')[1].strip(']').split('+')[0]) + int(args[0].split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in args[0] else int(args[0].split('[')[1].strip(']'))]
                             cbit = creg[int(args[1].split('[')[1].strip(']').split('+')[0]) + int(args[1].split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in args[1] else int(args[1].split('[')[1].strip(']'))]

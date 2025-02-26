@@ -1,3 +1,7 @@
+## [1.1.1] - 2025-02-26
+### Changed
+- _code_to_circuit_ibm can now handle correctly circuits using numpy library
+
 ## [1.1.0] - 2024-10-31
 ### Added
 - Added compatibility with more gates, including S, T, rotation gates... and multicontrolled gates for both Qiskit and Amazon Braket
