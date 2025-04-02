@@ -199,4 +199,4 @@ Consider a circuit with 2 qubits, requiring 100 shots. If the maximum number of 
 The changelog is available [here](https://github.com/Qcraft-UEx/QCRAFT-AutoSchedulQ/blob/main/CHANGELOG.md)
 
 ## License
-QCRAFT AutoSchedulQ is licensed under the [MIT License](https://github.com/Qcraft-UEx/QCRAFT/blob/main/LICENSE)
+QCRAFT AutoScheduler is licensed under the [MIT License](https://github.com/Qcraft-UEx/QCRAFT/blob/main/LICENSE)
