@@ -68,7 +68,7 @@ max_qubits = 8
 shots = 300
 autoscheduler = Autoscheduler()
 scheduled_circuit, shots, times = autoscheduler.schedule(circuit, shots, max_qubits=max_qubits)
-results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
+results = autoscheduler.execute(scheduled_circuit,shots,machine,times)
 ```
 
 Here is a basic example on how to use Autoscheduler with a Qiskit circuit.
@@ -95,10 +95,10 @@ circuit.measure(qreg_q[2], creg_c[2])
 circuit.measure(qreg_q[3], creg_c[3])
 
 max_qubits = 127
-shots = 1000
+shots = 2000
 autoscheduler = Autoscheduler()
 scheduled_circuit, shots, times = autoscheduler.schedule(circuit, shots, max_qubits=max_qubits)
-results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
+results = autoscheduler.execute(scheduled_circuit,shots,machine,times)
 ```
 
 It it possible to use the method schedule_and_execute instead of schedule and then execute, this method needs to have the machine in which you want to execute the circuit as a mandatory input. If the execution is on a aws machine, it is needed to specify the s3 bucket too. Also, provider is only needed when using Quirk URLs.
