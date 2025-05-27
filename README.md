@@ -106,9 +106,9 @@ It it possible to use the method schedule_and_execute instead of schedule and th
 ```python
 from autoscheduler import Autoscheduler
 
-circuit = "https://algassert.com/quirk#circuit={'cols':[['H'],['•','X'],['Measure','Measure']]}"
+circuit = "https://algassert.com/quirk#circuit={"cols":[["H","H","H"],["•","•",1,"X"],["•","X"],[1,"•","•","X"],[1,"•","X"],["•","X"],["Measure"],[1,"Measure"],[1,1,"Measure"],[1,1,1,"Measure"]]}"
 max_qubits = 4
-shots = 100
+shots = 2000
 provider = 'aws'
 autoscheduler = Autoscheduler()
 results = autoscheduler.schedule_and_execute(circuit, shots, 'ionq', max_qubits=max_qubits, provider=provider, s3_bucket=('amazon-braket-s3' 'my_braket_results'))
