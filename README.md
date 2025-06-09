@@ -32,6 +32,7 @@ pip install .
 
 Here is a basic example on how to use AutoScheduler with a Quirk URL, when using a Quirk URL, it is mandatory to include the provider ('ibm' or 'aws') as an input.
 ```python
+# Import Autoscheduler library
 from autoscheduler import Autoscheduler
 
 # Circuit initialization (Bell State): loaded from Quirk visual tool
@@ -54,6 +55,7 @@ results = autoscheduler.execute(scheduled_circuit, shots, 'local', times)
 
 Here is a basic example on how to use Autoscheduler with a GitHub URL.
 ```python
+# Import Autoscheduler library
 from autoscheduler import Autoscheduler
 
 # Circuit loaded from raw GitHub file
@@ -71,6 +73,7 @@ results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
 
 Here is a basic example on how to use Autoscheduler with a Braket circuit.
 ```python
+# Import Autoscheduler library and neccesary Braket libraries
 from autoscheduler import Autoscheduler
 from braket.circuits import Circuit
 
@@ -89,6 +92,8 @@ results = autoscheduler.execute(scheduled_circuit,shots,machine,times)
 
 Here is a basic example on how to use Autoscheduler with a Qiskit circuit.
 ```python
+
+# Import Autoscheduler library and neccesary Qiskit libraries
 from autoscheduler import Autoscheduler
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
