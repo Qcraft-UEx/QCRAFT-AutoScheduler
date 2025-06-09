@@ -34,22 +34,36 @@ Here is a basic example on how to use AutoScheduler with a Quirk URL, when using
 ```python
 from autoscheduler import Autoscheduler
 
+# Circuit initialization (Bell State): loaded from Quirk visual tool
 circuit = "https://algassert.com/quirk#circuit={'cols':[['H'],['•','X'],['Measure','Measure']]}"
+
+# Configuration: define shots, backend and qubit constraints
 max_qubits = 4
 shots = 100
 provider = 'ibm'
+
+# Scheduler initialization and circuit scheduling
 autoscheduler = Autoscheduler()
-scheduled_circuit, shots, times = autoscheduler.schedule(circuit, shots, max_qubits=max_qubits, provider=provider)
-results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
+scheduled_circuit, shots, times = autoscheduler.schedule(
+    circuit, shots, max_qubits=max_qubits, provider=provider)
+
+# Execution of scheduled circuit on a simulator (or backend)
+results = autoscheduler.execute(scheduled_circuit, shots, 'local', times)
+
 ```
 
 Here is a basic example on how to use Autoscheduler with a GitHub URL.
 ```python
 from autoscheduler import Autoscheduler
 
+# Circuit loaded from raw GitHub file
 circuit = "https://raw.githubusercontent.com/user/repo/branch/file.py"
+
+# Configuration: define shots and qubit constraints
 max_qubits = 15
 shots = 1000
+
+# Scheduler initialization and circuit scheduling
 autoscheduler = Autoscheduler()
 scheduled_circuit, shots, times = autoscheduler.schedule(circuit, shots, max_qubits=max_qubits)
 results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
@@ -60,10 +74,12 @@ Here is a basic example on how to use Autoscheduler with a Braket circuit.
 from autoscheduler import Autoscheduler
 from braket.circuits import Circuit
 
+# Circuit definition using Braket SDK
 circuit = Circuit()
 circuit.x(0)
 circuit.cnot(0,1)
 
+# Configuration and scheduling
 max_qubits = 8
 shots = 300
 autoscheduler = Autoscheduler()
@@ -76,9 +92,12 @@ Here is a basic example on how to use Autoscheduler with a Qiskit circuit.
 from autoscheduler import Autoscheduler
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
+# Full Adder circuit creation with 4 qubits and measurement
 qreg_q = QuantumRegister(4, 'q')
 creg_c = ClassicalRegister(4, 'c')
 circuit = QuantumCircuit(qreg_q, creg_c)
+
+# Add gates and barrier
 circuit.h(qreg_q[1])
 circuit.h(qreg_q[2])
 circuit.h(qreg_q[3])
@@ -94,8 +113,11 @@ circuit.measure(qreg_q[0], creg_c[0])
 circuit.measure(qreg_q[2], creg_c[2])
 circuit.measure(qreg_q[3], creg_c[3])
 
+# Configuration: define shots and qubit constraints
 max_qubits = 127
 shots = 2000
+
+# Scheduler initialization and circuit scheduling
 autoscheduler = Autoscheduler()
 scheduled_circuit, shots, times = autoscheduler.schedule(circuit, shots, max_qubits=max_qubits)
 results = autoscheduler.execute(scheduled_circuit,shots,machine,times)
@@ -128,6 +150,7 @@ results = autoscheduler.schedule_and_execute(circuit, shots, 'ibm_brisbane', max
 from autoscheduler import Autoscheduler
 from braket.circuits import Circuit
 
+# Circuit definition
 circuit = Circuit()
 circuit.x(0)
 circuit.cnot(0,1)
@@ -142,6 +165,7 @@ results = autoscheduler.schedule_and_execute(circuit, shots, 'ionq', max_qubits=
 from autoscheduler import Autoscheduler
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
+# Circuit definition
 qreg_q = QuantumRegister(2, 'q')
 creg_c = ClassicalRegister(2, 'c')
 circuit = QuantumCircuit(qreg_q, creg_c)
@@ -163,6 +187,7 @@ In schedule and schedule and execute you can use the machine to infer the value 
 from autoscheduler import Autoscheduler
 from braket.circuits import Circuit
 
+# Circuit definition
 circuit = Circuit()
 circuit.x(0)
 circuit.cnot(0,1)
@@ -179,6 +204,7 @@ results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
 from autoscheduler import Autoscheduler
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
+# Circuit definition
 qreg_q = QuantumRegister(2, 'q')
 creg_c = ClassicalRegister(2, 'c')
 circuit = QuantumCircuit(qreg_q, creg_c)
