@@ -8,7 +8,8 @@ dynamic = ["version"]
 description = "A library for quantum circuit composition"
 readme = "README.md"
 authors = [{name = "Jorge Casco Seco", email = "jorgecs@unex.es"}]
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
