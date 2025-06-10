@@ -16,7 +16,7 @@ extensions = [
     'sphinx.ext.napoleon'
 ]
 
-project = 'QCRAFT AutoSchedulQ'
+project = 'QCRAFT AutoScheduler'
 copyright = '2024, SPILab'
 author = 'Jorge Casco Seco'
 release = autoscheduler.__version__

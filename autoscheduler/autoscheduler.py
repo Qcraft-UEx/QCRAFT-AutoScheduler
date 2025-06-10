@@ -158,19 +158,19 @@ class Autoscheduler:
             max_qubits = self._get_qubits_machine(machine, provider) if max_qubits is None else max_qubits
             if max_qubits < qubits:
                 raise ValueError("Circuit too large")
-            composed_circuit,shots,times = self._create_circuit_url(max_qubits, qubits, circuit, shots, provider) #Based on the quirk url, it uses the translator to transform it into a string with the gates
-            circuit = self._get_composed_circuit(composed_circuit, provider)
+            composed_circuit_str,shots,times = self._create_circuit_url(max_qubits, qubits, circuit, shots, provider) #Based on the quirk url, it uses the translator to transform it into a string with the gates
+            composed_circuit = self._get_composed_circuit(composed_circuit_str, provider)
         elif 'github' in circuit:
             circuit, qubits, provider = self._get_qubits_circuit(circuit) #Gets the content of the github raw file to retrieve the circuit, it parses it and transforms it into a normalized circuit, also gets the qubit number to check if it fits within the max_qubits
             max_qubits = self._get_qubits_machine(machine, provider) if max_qubits is None else max_qubits
             if max_qubits < qubits:
                 raise ValueError("Circuit too large")
-            composed_circuit,shots,times = self._create_circuit_circuit(max_qubits, qubits, circuit, shots, provider) # Creates the composed circuit
-            circuit = self._get_composed_circuit(composed_circuit, provider)
+            composed_circuit_str,shots,times = self._create_circuit_circuit(max_qubits, qubits, circuit, shots, provider) # Creates the composed circuit
+            composed_circuit = self._get_composed_circuit(composed_circuit_str, provider)
         else:
             raise TypeError("Invalid circuit format. Expected a circuit object, a Quirk URL, or a GitHub URL.")
 
-        results = self.execute(circuit, shots, machine, times, s3_bucket)
+        results = self.execute(composed_circuit, shots, machine, times, s3_bucket)
         return results
 
 
@@ -408,7 +408,16 @@ class Autoscheduler:
             creg = creg_line.split('=')[0].strip() if creg_line else None
 
             # Remove all lines that don't start with file_circuit_name and don't include the line that has file_circuit_name.add_register and line not starts with // or # (comments)
-            circuit_lines = [line.split('#')[0].strip() for line in lines if line.split('#')[0].strip().startswith(file_circuit_name+'.') and 'add_register' not in line]
+            circuit_lines = []
+            for line in lines:
+                clean_line = line.split('#')[0].strip()
+                original_line = line.split('#')[0]  # Keep original spacing
+
+                if (clean_line.startswith(file_circuit_name+'.') and 'add_register' not in clean_line) or \
+                   clean_line.startswith('with circuit.if_test(') or \
+                   original_line.lstrip().startswith('circuit.'):  # Indented circuit operations
+                    circuit_lines.append(original_line.rstrip())  # Keep indentation but remove trailing spaces
+
             circuit = '\n'.join(circuit_lines)
 
 
@@ -672,9 +681,10 @@ class Autoscheduler:
             lines = code_str.strip().split('\n')
             # Initialize empty variables for registers and circuit
             qreg = creg = circuit = None
-
             # Process each line
-            for line in lines:
+            for line_index, line in enumerate(lines):
+                if not line.strip() or 'import' in line:
+                    continue
                 if 'import' not in line:
                     if "QuantumRegister" in line:
                         qreg_name = line.split('=')[0].strip()
@@ -689,12 +699,17 @@ class Autoscheduler:
                     elif "circuit." in line:
                         if ".c_if(" in line:
                             operation, condition = line.split('.c_if(')
+                        elif ".if_test(" in line:
+                            condition = line.split('.if_test(')[1].strip(')')
+                            operation = None
                         else:
                             operation = line
                             condition = None
                         # Parse gate operations
-                        gate_name = operation.split('circuit.')[1].split('(')[0]
-                        args = re.split(r'\s*,\s*', operation.split('(', 1)[1].rsplit(')', 1)[0].strip())
+                        gate_name = None
+                        if operation:#if_test lines don't have operation
+                            gate_name = operation.split('circuit.')[1].split('(')[0]
+                            args = re.split(r'\s*,\s*', operation.split('(', 1)[1].rsplit(')', 1)[0].strip())
                         if gate_name == "measure":
                             qubit = qreg[int(args[0].split('[')[1].strip(']').split('+')[0]) + int(args[0].split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in args[0] else int(args[0].split('[')[1].strip(']'))]
                             cbit = creg[int(args[1].split('[')[1].strip(']').split('+')[0]) + int(args[1].split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in args[1] else int(args[1].split('[')[1].strip(']'))]
@@ -732,17 +747,109 @@ class Autoscheduler:
                                 circuit.append(mcx, control_qubits + [target_qubit])
                                 circuit.h(target_qubit)
                         else:
-                            qubits = [qreg[int(arg.split('[')[1].strip(']').split('+')[0]) + int(arg.split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in arg else int(arg.split('[')[1].strip(']'))] for arg in args if '[' in arg]
-                            params = [eval(arg, {"__builtins__": None, "np": np}, {}) for param_str in args if '[' not in param_str for arg in param_str.split(',')]
-                            gate_operation = getattr(circuit, gate_name)(*params, *qubits) if params else getattr(circuit, gate_name)(*qubits)
+                            if operation and not condition:#if_test lines don't have operation
+                                qubits = [qreg[int(arg.split('[')[1].strip(']').split('+')[0]) + int(arg.split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in arg else int(arg.split('[')[1].strip(']'))] for arg in args if '[' in arg]
+                                params = [eval(arg, {"__builtins__": None, "np": np}, {}) for param_str in args if '[' not in param_str for arg in param_str.split(',')]
+                                gate_operation = getattr(circuit, gate_name)(*params, *qubits) if params else getattr(circuit, gate_name)(*qubits)
                             if condition:
                                 creg_name, val = condition.split(')')[0].split(',')
                                 val = int(val.strip())
-                                gate_operation.c_if(creg, val)
+
+                                # Parse classical condition
+                                if '[' in creg_name:
+                                    index_expr = creg_name.split('[')[1].strip(']')
+                                    if '+' in index_expr:
+                                        index = int(index_expr.split('+')[0]) + int(index_expr.split('+')[1].strip())
+                                    else:
+                                        index = int(index_expr)
+                                    classical_condition = creg[index]
+                                else:
+                                    classical_condition = creg
+
+                                if operation is None:  #when the operation is if_test
+                                    #Collect all idented operations to handle them after
+                                    block_operations = []
+                                    current_line_index = line_index
+                                    base_indent = len(line) - len(line.lstrip())
+
+                                    i = current_line_index + 1
+                                    while i < len(lines) and i < len(lines):
+                                        next_line = lines[i]
+                                        if not next_line.strip():  #Skip empty lines
+                                            i += 1
+                                            continue
+                                        line_indent = len(next_line) - len(next_line.lstrip())
+                                        if line_indent > base_indent:
+                                            block_operations.append(next_line.strip())
+                                            lines[i] = ""  #Mark lines as processed so they are not processed again
+                                            i += 1
+                                        else:
+                                            break
+
+                                    if self._get_qiskit_version() < 2:
+                                        #Qiskit 1 -> apply c_if with all the operations that were obtained in the previous handling
+                                        for op_str in block_operations:
+                                            gate_op = self._get_gate_operation(op_str, circuit, qreg, creg)
+                                            if gate_op:
+                                                gate_op.c_if(classical_condition, val)
+                                    else:
+                                        #Qiskit 2 -> use if_test with all the operations that were obtained in the previous handling
+                                        with circuit.if_test((classical_condition, val)):
+                                            for op_str in block_operations:
+                                                self._get_gate_operation(op_str, circuit, qreg, creg)
+
+                                else:#when the circuit initially has c_if
+                                    if self._get_qiskit_version() < 2:
+                                        gate_op = self._get_gate_operation(operation, circuit, qreg, creg)
+                                        #Qiskit 1 -> use the same operation on c_if
+                                        gate_op.c_if(classical_condition, val)
+                                    else:
+                                        #Qiskit 2 -> if_test with the operation
+                                        with circuit.if_test((classical_condition, val)):
+                                            # Re-execute the gate operation inside if_test context
+                                            self._get_gate_operation(operation, circuit, qreg, creg)
+
+                                    
         except Exception as e:
             raise ValueError("Invalid circuit code") from e
-
         return circuit
+    
+    def _get_gate_operation(self, operation_str: str, circuit: qiskit.QuantumCircuit, qreg: qiskit.QuantumRegister, creg: qiskit.ClassicalRegister) -> Union[qiskit.circuit.Instruction, None]:
+        """
+        Gets a single gate operation from a string representation.
+
+        Args:
+            operation_str (str): The string representation of the gate operation.
+            circuit (qiskit.QuantumCircuit): The quantum circuit to which the gate operation will be added.
+            qreg (qiskit.QuantumRegister): The quantum register containing the qubits.
+            creg (qiskit.ClassicalRegister): The classical register containing the bits.
+
+        Returns:
+            qiskit.circuit.Instruction | None: The gate operation added to the circuit, or None if the operation is not valid.
+        """
+        if not operation_str.strip() or 'circuit.' not in operation_str:
+            return None
+
+        gate_name = operation_str.split('circuit.')[1].split('(')[0]
+        args = re.split(r'\s*,\s*', operation_str.split('(', 1)[1].rsplit(')', 1)[0].strip())
+
+        if gate_name == "measure":
+            qubit = qreg[int(args[0].split('[')[1].strip(']').split('+')[0]) + int(args[0].split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in args[0] else int(args[0].split('[')[1].strip(']'))]
+            cbit = creg[int(args[1].split('[')[1].strip(']').split('+')[0]) + int(args[1].split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in args[1] else int(args[1].split('[')[1].strip(']'))]
+            return circuit.measure(qubit, cbit)
+        elif gate_name == "barrier":
+            if args[0] == '':
+                return circuit.barrier()
+            elif args[0] == qreg.name:
+                return circuit.barrier(*qreg)
+            else:
+                qubits = [qreg[int(arg.split('[')[1].strip(']').split('+')[0]) + int(arg.split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in arg else int(arg.split('[')[1].strip(']'))] for arg in args if '[' in arg]
+                return circuit.barrier(qubits)
+        else:
+            qubits = [qreg[int(arg.split('[')[1].strip(']').split('+')[0]) + int(arg.split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in arg else int(arg.split('[')[1].strip(']'))] for arg in args if '[' in arg]
+            params = [eval(arg, {"__builtins__": None, "np": np}, {}) for param_str in args if '[' not in param_str for arg in param_str.split(',')]
+            return getattr(circuit, gate_name)(*params, *qubits) if params else getattr(circuit, gate_name)(*qubits)
+    
 
     def _code_to_circuit_aws(self, code_str:str) -> Circuit: #Inverse parser to get the circuit object from the string
         """
@@ -846,4 +953,20 @@ class Autoscheduler:
             return _get_qubits_machine_aws(machine)
 
         raise TypeError("Invalid provider")
+    
+    def _get_qiskit_version(self):
+        """Get the major version of the installed qiskit package.
+        
+        Returns:
+            int: The major version of qiskit, or 1 if the version cannot be determined.
+        """
+        try:
+            import importlib.metadata
+            import re
+            version = importlib.metadata.version("qiskit")
+            major_version = int(re.match(r'^(\d+)\.', version).group(1))
+            return major_version
+        except (ImportError, AttributeError):
+            # Default to version 1 if detection fails
+            return 1
     

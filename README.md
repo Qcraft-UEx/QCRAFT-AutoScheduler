@@ -237,7 +237,7 @@ The total number of shots may differ from the original on a very small scale bec
 Consider a circuit with 2 qubits, requiring 100 shots. If the maximum number of qubits of the new scheduled circuit is 6, the shots will be reduced to 100/(6/2) = 34 in total. Upon uncheduling, the results of each segment of the circuit will be aggregated, resulting on 34*(6/2) = 102 shots in total. Even so, the cost reduction has been achieved because the number of shots has been reduced from 100 to 34.
 
 ## Changelog
-The changelog is available [here](https://github.com/Qcraft-UEx/QCRAFT-AutoSchedulQ/blob/main/CHANGELOG.md)
+The changelog is available [here](https://github.com/Qcraft-UEx/QCRAFT-AutoScheduler/blob/main/CHANGELOG.md)
 
 ## License
 QCRAFT AutoScheduler is licensed under the [MIT License](https://github.com/Qcraft-UEx/QCRAFT/blob/main/LICENSE)

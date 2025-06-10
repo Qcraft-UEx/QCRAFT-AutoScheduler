@@ -158,4 +158,4 @@ In schedule and schedule and execute you can use the machine to infer the value 
     autoscheduler = Autoscheduler()
     results = autoscheduler.schedule_and_execute(circuit, shots, 'ibm_brisbane')
 
-QCRAFT AutoschedulQ will utilize the default AWS and IBM Cloud credentials stored on the machine for cloud executions.
+QCRAFT AutoScheduler will utilize the default AWS and IBM Cloud credentials stored on the machine for cloud executions.

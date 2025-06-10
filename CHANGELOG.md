@@ -1,3 +1,12 @@
+## [1.2.0] - 2025-06-10
+### Added
+- Added compatibility with version 2 of Qiskit, including the if_test conditional operation
+- Added new tests for `autoscheduler`
+
+### Fixed
+- Solved an error in which `schedule_and_execute` sometimes didn't autoschedule the circuit
+- Solved an error in which specifying an index in classical registers were handled as if the entire classical register was specified
+
 ## [1.1.1] - 2025-02-26
 ### Changed
 - _code_to_circuit_ibm can now handle correctly circuits using numpy library

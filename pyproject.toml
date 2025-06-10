@@ -22,7 +22,7 @@ keywords = ["quantum", "quantum computing", "quantum circuit optimization", "cir
 
 dependencies = [
     "requests>=2.32.0,<3.0.0",
-    "qiskit>=1.1.0,<2.0.0",
+    "qiskit>=1.1.0,<3.0.0",
     "amazon-braket-sdk>=1.80.0,<2.0.0",
     "qiskit-ibm-runtime>=0.23.0,<1.0.0",
     "qiskit-aer>=0.14.2,<1.0.0",
@@ -35,8 +35,8 @@ requires-python = ">=3.9"
 dev = ["pytest", "sphinx"]
 
 [project.urls]
-Homepage = "https://github.com/Qcraft-UEx/QCRAFT-AutoSchedulQ"
-Changelog = "https://github.com/Qcraft-UEx/QCRAFT-AutoSchedulQ/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/Qcraft-UEx/QCRAFT-AutoScheduler"
+Changelog = "https://github.com/Qcraft-UEx/QCRAFT-AutoScheduler/blob/main/CHANGELOG.md"
 
 [tool.setuptools.dynamic]
 version = {attr = "autoscheduler._version.__version__"}
