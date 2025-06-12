@@ -114,7 +114,6 @@ class Autoscheduler:
 
         if provider == 'aws' and s3_bucket is None and machine != 'local':
             raise ValueError("S3 Bucket not specified")
-
         if provider == "ibm":
             counts = _runIBM(machine,circuit,shots)
         elif provider == "aws":
@@ -392,6 +391,7 @@ class Autoscheduler:
             ValueError: If the circuit does not contain a qubit and a gate; or if the input is not a quantum circuit.
         """
         qc = None
+        num_qubits = 0
         if importIBM:
             num_qubits_line = next((line.split('#')[0].strip() for line in lines if '= QuantumRegister(' in line.split('#')[0]), None)
             num_qubits = int(num_qubits_line.split('QuantumRegister(')[1].split(',')[0].strip(')')) if num_qubits_line else None
@@ -849,7 +849,6 @@ class Autoscheduler:
             qubits = [qreg[int(arg.split('[')[1].strip(']').split('+')[0]) + int(arg.split('[')[1].strip(']').split('+')[1].strip(') ')) if '+' in arg else int(arg.split('[')[1].strip(']'))] for arg in args if '[' in arg]
             params = [eval(arg, {"__builtins__": None, "np": np}, {}) for param_str in args if '[' not in param_str for arg in param_str.split(',')]
             return getattr(circuit, gate_name)(*params, *qubits) if params else getattr(circuit, gate_name)(*qubits)
-    
 
     def _code_to_circuit_aws(self, code_str:str) -> Circuit: #Inverse parser to get the circuit object from the string
         """

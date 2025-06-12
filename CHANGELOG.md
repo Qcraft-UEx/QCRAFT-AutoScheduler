@@ -1,3 +1,8 @@
+## [1.2.1] - 2025-06-12
+### Added
+- Added new tests for `schedule_and_execute` and other methods on `autoscheduler` class
+- Added new classifiers in `pyproject.toml`
+
 ## [1.2.0] - 2025-06-10
 ### Added
 - Added compatibility with version 2 of Qiskit, including the if_test conditional operation
