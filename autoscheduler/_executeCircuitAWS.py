@@ -30,7 +30,7 @@ def _recover_task_result(task_load: AwsQuantumTask) -> dict:
         
         time.sleep(1)
         sleep_times = sleep_times + 1
-    print("Quantum execution time exceded")
+    print("Quantum execution time exceeded")
     return None
 
 def _runAWS(machine:str, circuit:Circuit, shots:int, s3_bucket: Optional[tuple] = None) -> dict:

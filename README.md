@@ -73,7 +73,7 @@ results = autoscheduler.execute(scheduled_circuit,shots,'local',times)
 
 Here is a basic example on how to use Autoscheduler with a Braket circuit.
 ```python
-# Import Autoscheduler library and neccesary Braket libraries
+# Import Autoscheduler library and necessary Braket libraries
 from autoscheduler import Autoscheduler
 from braket.circuits import Circuit
 
@@ -93,7 +93,7 @@ results = autoscheduler.execute(scheduled_circuit,shots,machine,times)
 Here is a basic example on how to use Autoscheduler with a Qiskit circuit.
 ```python
 
-# Import Autoscheduler library and neccesary Qiskit libraries
+# Import Autoscheduler library and necessary Qiskit libraries
 from autoscheduler import Autoscheduler
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
@@ -128,7 +128,7 @@ scheduled_circuit, shots, times = autoscheduler.schedule(circuit, shots, max_qub
 results = autoscheduler.execute(scheduled_circuit,shots,machine,times)
 ```
 
-It it possible to use the method schedule_and_execute instead of schedule and then execute, this method needs to have the machine in which you want to execute the circuit as a mandatory input. If the execution is on a aws machine, it is needed to specify the s3 bucket too. Also, provider is only needed when using Quirk URLs.
+It is possible to use the method schedule_and_execute instead of schedule and then execute, this method needs to have the machine in which you want to execute the circuit as a mandatory input. If the execution is on a aws machine, it is needed to specify the s3 bucket too. Also, provider is only needed when using Quirk URLs.
 
 ```python
 from autoscheduler import Autoscheduler
@@ -230,11 +230,11 @@ QCRAFT AutoScheduler will utilize the default AWS and IBM Cloud credentials stor
 This library aims for the shot optimization on quantum tasks. Reducing the cost of the circuit on the end-user.
 
 ### Shot optimization
-To achieve the shot optimization, the original circuit will be composed multiple time with itself. The more segments, the less shots will be needed to replicate the original circuit.
+To achieve the shot optimization, the original circuit will be composed multiple times with itself. The more segments, the less shots will be needed to replicate the original circuit.
 The total number of shots may differ from the original on a very small scale because the library combines the original circuit multiple times. Depending on the maximum number of qubits, to achieve the desired number of shots and cost reduction the algorithm will create segments equal to the original circuit each with a proportional number of shots, all this on a unique circuit.
 
 **Example:**
-Consider a circuit with 2 qubits, requiring 100 shots. If the maximum number of qubits of the new scheduled circuit is 6, the shots will be reduced to 100/(6/2) = 34 in total. Upon uncheduling, the results of each segment of the circuit will be aggregated, resulting on 34*(6/2) = 102 shots in total. Even so, the cost reduction has been achieved because the number of shots has been reduced from 100 to 34.
+Consider a circuit with 2 qubits, requiring 100 shots. If the maximum number of qubits of the new scheduled circuit is 6, the shots will be reduced to 100/(6/2) = 34 in total. Upon unscheduling, the results of each segment of the circuit will be aggregated, resulting on 34*(6/2) = 102 shots in total. Even so, the cost reduction has been achieved because the number of shots has been reduced from 100 to 34.
 
 ## Changelog
 The changelog is available [here](https://github.com/Qcraft-UEx/QCRAFT-AutoScheduler/blob/main/CHANGELOG.md)

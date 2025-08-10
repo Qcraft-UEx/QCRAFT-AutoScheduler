@@ -190,7 +190,7 @@ class TestAutoScheduler(unittest.TestCase):
                 circuit.x(  1)    
                 circuit.x(2)
                 circuit.x( 3 )      
-                circuit.cnot(2, 1) # chaning qubit 1
+                circuit.cnot(2, 1) # changing qubit 1
                 circuit.cnot( 1 ,2) #
                 circuit.cnot(2,1)  # 121
                 circuit.cnot(1,0) # 4
