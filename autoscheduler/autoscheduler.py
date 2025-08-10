@@ -35,7 +35,7 @@ class Autoscheduler:
     def schedule(self, circuit: Union[qiskit.QuantumCircuit, Circuit, str], shots:int, machine: Optional[str] = None, max_qubits:Optional[int] = None, provider: Optional[str] = None) -> Tuple[Union[qiskit.QuantumCircuit, Circuit], int, int]:
          # Compose the circuit, it can be a circuit, github url of a circuit or quirk url of a circuit
         """
-        Composes the circuit multiple time to reduce the number of shots needed to execute the circuit.
+        Composes the circuit multiple times to reduce the number of shots needed to execute the circuit.
 
         Args:
             circuit (qiskit.QuantumCircuit | braket.circuits.Circuit | str): The circuit that will be scheduled, it can be a Qiskit circuit, Braket circuit, GitHub raw URL with a circuit or a Quirk URL.
@@ -123,14 +123,14 @@ class Autoscheduler:
 
     def schedule_and_execute(self, circuit:Union[qiskit.QuantumCircuit, Circuit, str], shots:int, machine:str, max_qubits:Optional[int] = None, provider:Optional[str] = None, s3_bucket:Optional[tuple] = None) -> dict: # Compose the circuit
         """
-        Composes the circuit multiple time to reduce the number of shots needed to execute the circuit and also executes it.
+        Composes the circuit multiple times to reduce the number of shots needed to execute the circuit and also executes it.
 
         Args:
             circuit (qiskit.QuantumCircuit | braket.circuits.Circuit | str): The circuit that will be scheduled and later executed, it can be a Qiskit circuit, Braket circuit, GitHub raw URL with a circuit or a Quirk URL.
             shots (int): The initial number of shots that the composed circuit will be executed.
             machine (str): The machine that will execute the circuit. It can be 'local' or the name of the machine on 'ibm' or 'aws'. For 'aws' it can be either the name or the ARN of the machine.
             max_qubits (int, optional): The maximum number of qubits that the composed circuit can have. If None, the qubits will be inferred from `machine`.
-            provider (str, optional): The provider of the circuit. It can be 'ibm', 'aws' or None. If None, it will be inferred from the circuit, it it only mandatory when Quirk URL is used.
+            provider (str, optional): The provider of the circuit. It can be 'ibm', 'aws' or None. If None, it will be inferred from the circuit, it is only mandatory when Quirk URL is used.
             s3_bucket (tuple, optional): The S3 bucket where the results will be stored. It is only mandatory when `machine` is not 'local' and the circuit will be executed on aws. The format is ('bucket-name', 'folder-name').
 
         Returns:
@@ -430,7 +430,7 @@ class Autoscheduler:
             qubits = [0] * num_qubits
             for line in circuit.split('\n'): # For each line in the circuit
                 if 'measure' not in line and 'barrier' not in line: #If the line is not a measure or a barrier
-                    # Check the numbers after qreg_q and add 1 to qubits on that position. It should work with whings like circuit.cx(qreg_q[0], qreg_q[3]), adding 1 to both 0 and 3
+                    # Check the numbers after qreg_q and add 1 to qubits on that position. It should work with things like circuit.cx(qreg_q[0], qreg_q[3]), adding 1 to both 0 and 3
                     # This adds 1 to the number of gates used on that qubit
                     for match in re.finditer(r'qreg_q\[(\d+)\]', line):
                         qubits[int(match.group(1))] += 1
@@ -486,7 +486,7 @@ class Autoscheduler:
 
     def _compose_circuit(self, max_qubits:int, qubits:int, circuit:Union[qiskit.QuantumCircuit, Circuit], shots:int, provider:str) -> Tuple[Union[qiskit.QuantumCircuit, Circuit],int,int]:
         """
-        Composes a quantum circuit based on a an object multiple times.
+        Composes a quantum circuit based on an object multiple times.
 
         Args:
             max_qubits (int): The maximum number of qubits that the composed circuit can have.
