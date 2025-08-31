@@ -1,0 +1,48 @@
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+import numpy as np
+
+qreg_q = QuantumRegister(6, 'q')
+creg_meas = ClassicalRegister(6, 'meas')
+circuit = QuantumCircuit(qreg_q, creg_meas)
+
+# Benchmark was created by MQT Bench on 2024-03-18
+# For more information about MQT Bench, please visit https://www.cda.cit.tum.de/mqtbench/
+# MQT Bench version: 1.1.0
+# Qiskit version: 1.0.2
+circuit.h(qreg_q[0])
+circuit.h(qreg_q[1])
+circuit.h(qreg_q[2])
+circuit.rzz(-4.993767341069986, qreg_q[0], qreg_q[2])
+circuit.h(qreg_q[3])
+circuit.rzz(-4.993767341069986, qreg_q[0], qreg_q[3])
+circuit.rx(-2.4967770622792953, qreg_q[0])
+circuit.h(qreg_q[4])
+circuit.rzz(-4.993767341069986, qreg_q[1], qreg_q[4])
+circuit.rzz(-4.993767341069986, qreg_q[2], qreg_q[4])
+circuit.rx(-2.4967770622792953, qreg_q[2])
+circuit.rzz(-0.6447018505867251, qreg_q[0], qreg_q[2])
+circuit.rx(-2.4967770622792953, qreg_q[4])
+circuit.h(qreg_q[5])
+circuit.rzz(-4.993767341069986, qreg_q[1], qreg_q[5])
+circuit.rx(-2.4967770622792953, qreg_q[1])
+circuit.rzz(-0.6447018505867251, qreg_q[1], qreg_q[4])
+circuit.rzz(-0.6447018505867251, qreg_q[2], qreg_q[4])
+circuit.rx(8.135245684982658, qreg_q[2])
+circuit.rzz(-4.993767341069986, qreg_q[3], qreg_q[5])
+circuit.rx(-2.4967770622792953, qreg_q[3])
+circuit.rzz(-0.6447018505867251, qreg_q[0], qreg_q[3])
+circuit.rx(8.135245684982658, qreg_q[0])
+circuit.rx(8.135245684982658, qreg_q[4])
+circuit.rx(-2.4967770622792953, qreg_q[5])
+circuit.rzz(-0.6447018505867251, qreg_q[1], qreg_q[5])
+circuit.rx(8.135245684982658, qreg_q[1])
+circuit.rzz(-0.6447018505867251, qreg_q[3], qreg_q[5])
+circuit.rx(8.135245684982658, qreg_q[3])
+circuit.rx(8.135245684982658, qreg_q[5])
+circuit.barrier(qreg_q[0], qreg_q[1], qreg_q[2], qreg_q[3], qreg_q[4], qreg_q[5])
+circuit.measure(qreg_q[0], creg_meas[0])
+circuit.measure(qreg_q[1], creg_meas[1])
+circuit.measure(qreg_q[2], creg_meas[2])
+circuit.measure(qreg_q[3], creg_meas[3])
+circuit.measure(qreg_q[4], creg_meas[4])
+circuit.measure(qreg_q[5], creg_meas[5])

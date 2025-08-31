@@ -1,0 +1,46 @@
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+import numpy as np
+
+qreg_q = QuantumRegister(6, 'q')
+creg_meas = ClassicalRegister(6, 'meas')
+circuit = QuantumCircuit(qreg_q, creg_meas)
+
+# Benchmark was created by MQT Bench on 2024-03-19
+# For more information about MQT Bench, please visit https://www.cda.cit.tum.de/mqtbench/
+# MQT Bench version: 1.1.0
+# Qiskit version: 1.0.2
+circuit.ry(3.061990373758841, qreg_q[0])
+circuit.ry(3.1415302799473563, qreg_q[1])
+circuit.ry(1.5712531165795274, qreg_q[2])
+circuit.ry(-0.0001452392683317902, qreg_q[3])
+circuit.ry(-2.31967727354622, qreg_q[4])
+circuit.ry(np.pi, qreg_q[5])
+circuit.cx(qreg_q[4], qreg_q[5])
+circuit.cx(qreg_q[3], qreg_q[4])
+circuit.cx(qreg_q[2], qreg_q[3])
+circuit.cx(qreg_q[1], qreg_q[2])
+circuit.cx(qreg_q[0], qreg_q[1])
+circuit.ry(0.150095507770468, qreg_q[0])
+circuit.ry(-1.0868997256051287, qreg_q[1])
+circuit.ry(0.737464585284184, qreg_q[2])
+circuit.ry(-0.7375123187150454, qreg_q[3])
+circuit.ry(-1.570808525773773, qreg_q[4])
+circuit.ry(1.5709092500923758, qreg_q[5])
+circuit.cx(qreg_q[4], qreg_q[5])
+circuit.cx(qreg_q[3], qreg_q[4])
+circuit.cx(qreg_q[2], qreg_q[3])
+circuit.cx(qreg_q[1], qreg_q[2])
+circuit.cx(qreg_q[0], qreg_q[1])
+circuit.ry(-2.971912725037559, qreg_q[0])
+circuit.ry(-1.0809012660904078, qreg_q[1])
+circuit.ry(1.570803491785533, qreg_q[2])
+circuit.ry(0.000701975940692948, qreg_q[3])
+circuit.ry(-1.570496169225627, qreg_q[4])
+circuit.ry(-0.7490476703896829, qreg_q[5])
+circuit.barrier(qreg_q[0], qreg_q[1], qreg_q[2], qreg_q[3], qreg_q[4], qreg_q[5])
+circuit.measure(qreg_q[0], creg_meas[0])
+circuit.measure(qreg_q[1], creg_meas[1])
+circuit.measure(qreg_q[2], creg_meas[2])
+circuit.measure(qreg_q[3], creg_meas[3])
+circuit.measure(qreg_q[4], creg_meas[4])
+circuit.measure(qreg_q[5], creg_meas[5])
