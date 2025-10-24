@@ -57,7 +57,7 @@ def plot_and_save(all_distances):
     ax.set_xlabel('Algorithm')
     plt.xticks(rotation=45)  #Rotate the x-axis labels for better readability
     plt.tight_layout()
-    #Sets filename and saves the flot
+    #Sets filename and saves the plot
     filename = os.path.join(base_dir, 'hellinger.png')
     plt.savefig(filename, bbox_inches='tight')
     plt.close()
@@ -73,7 +73,7 @@ def handle_file(dir):
         with open(filepath, 'r') as file:
             key = os.path.splitext(os.path.basename(filepath))[0]
             content_dict = ast.literal_eval(file.read())
-            #Convert frequencies into probaiblity distributions to use the hellinger distance
+            #Convert frequencies into probability distributions to use the hellinger distance
             dist[key] = counts_to_probabilities(content_dict)
 
     return dist
