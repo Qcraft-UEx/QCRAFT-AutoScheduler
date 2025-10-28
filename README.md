@@ -1,17 +1,38 @@
 <p align="center">
-   <picture>
-     <source media="(prefers-color-scheme: dark)" srcset="https://github.com/Qcraft-UEx/Qcraft/blob/main/docs/_images/qcraft_logo.png?raw=true" width="60%">
-     <img src="https://github.com/Qcraft-UEx/Qcraft/blob/main/docs/_images/qcraft_logo.png?raw=true" width="60%" alt="Qcraft Logo">
-   </picture>
+   <picture>
+     <source media="(prefers-color-scheme: dark)" srcset="https://github.com/Qcraft-UEx/Qcraft/blob/main/docs/_images/qcraft_logo.png?raw=true" width="60%">
+     <img src="https://github.com/Qcraft-UEx/Qcraft/blob/main/docs/_images/qcraft_logo.png?raw=true" width="60%" alt="Qcraft Logo">
+   </picture>
 </p>
 
-# QCRAFT AutoScheduler
+# QCRAFT AutoScheduler: Automated Quantum Circuit Scheduling
 [![PyPI Version](https://img.shields.io/pypi/v/autoscheduler.svg)](https://pypi.org/project/autoscheduler/)
 ![Python Versions](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13-blue.svg)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Qcraft-UEx/QCRAFT/blob/main/LICENSE)
 
-QCRAFT AutoScheduler: a library that allows users to automatically schedule the execution of their own quantum circuits, improving efficiency and reducing execution times in quantum computing environments. With this library, your Qiskit or Braket quantum circuit will be modified to increase its length but also decreasing the number of shots needed to execute it, getting a new circuit that needs more qubits but less shots to get the same result as the original circuit.
+The **QCRAFT AutoScheduler** is a developer-oriented library designed to **automatically schedule quantum circuits** by replicating them to maximize the utilization of available qubits on a quantum processor. This novel approach improves efficiency, substantially **reduces execution costs and waiting times**, and optimizes hardware usage in Noisy Intermediate-Scale Quantum (NISQ) computing environments.
 
+The library achieves this by transforming a source circuit into a **composite circuit** with greater width and a proportionally **reduced number of measurement shots**. This process effectively multiplexes multiple instances of the original quantum task into a single, more resource-efficient.
+
+---
+
+## AutoScheduler Process Overview
+
+The autoscheduling process is a four-step pipeline that automatically handles the composition, execution, and reconstruction of results for quantum circuits. 
+
+<p align="center">
+   <picture>
+     <source media="(prefers-color-scheme: dark)" srcset="https://github.com/Qcraft-UEx/QCRAFT-AutoScheduler/blob/main/autoscheduler/Autoscheduler_imagen.png?raw=true" width="60%">
+     <img src="https://github.com/Qcraft-UEx/QCRAFT-AutoScheduler/blob/main/autoscheduler/Autoscheduler_imagen.png?raw=true" width="35%" alt="QCRAFT AutoScheduler">
+   </picture>
+</p>
+
+1. **Scheduling (Autoscheduling):** The library takes the user's quantum circuit ($C$) and the maximum available qubits ($q_{max}$) as input. It then calculates how many replicas ($r$) of the circuit can fit onto the quantum processor and generates a new, wider composite circuit ($C'$). The total required shots ($s$) are divided proportionally among the replicas, reducing the number of shots required for the single execution of $C'$.
+2. **Execution (Quantum Execution):** The composite circuit ($C'$) is submitted as a single task to the selected quantum computer or simulator (QPU). This execution has a lower shot count, which directly reduces the execution time and cost compared to executing the original circuit sequentially $r$ times.
+3. **Unscheduling:** After the execution completes, the Unscheduler method is responsible for reconstructing the distribution of the results of the original circuit. It reconstructs the original circuit's result distribution by aggregating the outcomes from all replicas. This is achieved by performing an arithmetic sum of the frequencies obtained for each specific result across all segments.
+4. **Results:** The final output delivered to the developer is the reconstructed result distribution, equivalent to having executed the original circuit with the full, initial shot count.
+
+---
 ## Installation
 
 You can install QCRAFT AutoScheduler and all its dependencies using pip:
@@ -27,6 +48,8 @@ git clone https://github.com/Qcraft-UEx/QCRAFT-AutoScheduler.git
 cd autoscheduler
 pip install .
 ```
+
+---
 
 ## Usage
 
@@ -226,18 +249,30 @@ results = autoscheduler.schedule_and_execute(circuit, shots, 'ibm_brisbane')
 ```
 QCRAFT AutoScheduler will utilize the default AWS and IBM Cloud credentials stored on the machine for cloud executions.
 
-## Optimizing Quantum Tasks
-This library aims for the shot optimization on quantum tasks. Reducing the cost of the circuit on the end-user.
+---
 
-### Shot optimization
+## Quantum Task Optimization
+The core objective of the AutoScheduler is shot optimization, which reduces the task execution cost for the end-user.
+
+### Shot Reduction Mechanism
 To achieve the shot optimization, the original circuit will be composed multiple time with itself. The more segments, the less shots will be needed to replicate the original circuit.
 The total number of shots may differ from the original on a very small scale because the library combines the original circuit multiple times. Depending on the maximum number of qubits, to achieve the desired number of shots and cost reduction the algorithm will create segments equal to the original circuit each with a proportional number of shots, all this on a unique circuit.
 
 **Example:**
-Consider a circuit with 2 qubits, requiring 100 shots. If the maximum number of qubits of the new scheduled circuit is 6, the shots will be reduced to 100/(6/2) = 34 in total. Upon uncheduling, the results of each segment of the circuit will be aggregated, resulting on 34*(6/2) = 102 shots in total. Even so, the cost reduction has been achieved because the number of shots has been reduced from 100 to 34.
+A circuit requiring 1000 shots on 4 qubits, running on a 20-qubit processor ($q_{max}=20$), will be replicated 5 times.
+- Original Circuit Shots: 1000
+- Replication Factor: $20 \text{ qubits} / 4 \text{ qubits} = 5$
+- Composite Circuit Shots: $1000 / 5 = 200$ shots.
+
+The cost reduction achieved in validation experiments was 80.7% on Amazon Braket. The result aggregation during unscheduling recovers the statistical power equivalent to the original 1000 shots.
+
+
+---
 
 ## Changelog
 The changelog is available [here](https://github.com/Qcraft-UEx/QCRAFT-AutoScheduler/blob/main/CHANGELOG.md)
+
+---
 
 ## License
 QCRAFT AutoScheduler is licensed under the [MIT License](https://github.com/Qcraft-UEx/QCRAFT/blob/main/LICENSE)
